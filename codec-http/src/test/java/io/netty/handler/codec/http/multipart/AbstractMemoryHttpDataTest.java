@@ -20,7 +20,6 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.util.internal.PlatformDependent;
-
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
@@ -32,10 +31,15 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
 
-import static io.netty.util.CharsetUtil.*;
-import static org.junit.Assert.*;
+import static io.netty.util.CharsetUtil.UTF_8;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-/** {@link AbstractMemoryHttpData} test cases. */
+/**
+ * {@link AbstractMemoryHttpData} test cases.
+ */
 public class AbstractMemoryHttpDataTest {
 
     @Test
@@ -64,6 +68,7 @@ public class AbstractMemoryHttpDataTest {
             test.delete();
         }
     }
+
     /**
      * Provide content into HTTP data with input stream.
      *
@@ -111,7 +116,9 @@ public class AbstractMemoryHttpDataTest {
         }
     }
 
-    /** Memory-based HTTP data implementation for test purposes. */
+    /**
+     * Memory-based HTTP data implementation for test purposes.
+     */
     private static final class TestHttpData extends AbstractMemoryHttpData {
         /**
          * Constructs HTTP data for tests.
