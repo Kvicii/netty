@@ -58,14 +58,14 @@ import java.util.concurrent.TimeUnit;
  *                                      | isCancelled() = true      |
  *                                      +---------------------------+
  * </pre>
- *
+ * <p>
  * Various methods are provided to let you check if the I/O operation has been
  * completed, wait for the completion, and retrieve the result of the I/O
  * operation. It also allows you to add {@link ChannelFutureListener}s so you
  * can get notified when the I/O operation is completed.
  *
  * <h3>Prefer {@link #addListener(GenericFutureListener)} to {@link #await()}</h3>
- *
+ * <p>
  * It is recommended to prefer {@link #addListener(GenericFutureListener)} to
  * {@link #await()} wherever possible to get notified when an I/O operation is
  * done and to do any follow-up tasks.
@@ -121,7 +121,7 @@ import java.util.concurrent.TimeUnit;
  * {@link BlockingOperationException} will be raised to prevent a dead lock.
  *
  * <h3>Do not confuse I/O timeout and await timeout</h3>
- *
+ * <p>
  * The timeout value you specify with {@link #await(long)},
  * {@link #await(long, TimeUnit)}, {@link #awaitUninterruptibly(long)}, or
  * {@link #awaitUninterruptibly(long, TimeUnit)} are not related with I/O

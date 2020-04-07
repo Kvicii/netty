@@ -63,8 +63,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     // The order in which ChannelOptions are applied is important they may depend on each other for validation
     // purposes.
-    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
-    private final Map<AttributeKey<?>, Object> attrs = new ConcurrentHashMap<AttributeKey<?>, Object>();
+    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<>();
+    private final Map<AttributeKey<?>, Object> attrs = new ConcurrentHashMap<>();
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -132,7 +132,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * has a no-args constructor, its highly recommend to just use {@link #channel(Class)} to
      * simplify your code.
      */
-    @SuppressWarnings({ "unchecked", "deprecation" })
+    @SuppressWarnings({"unchecked", "deprecation"})
     public B channelFactory(io.netty.channel.ChannelFactory<? extends C> channelFactory) {
         return channelFactory((ChannelFactory<C>) channelFactory);
     }
@@ -283,21 +283,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
-            regFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    Throwable cause = future.cause();
-                    if (cause != null) {
-                        // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
-                        // IllegalStateException once we try to access the EventLoop of the Channel.
-                        promise.setFailure(cause);
-                    } else {
-                        // Registration was successful, so set the correct executor to use.
-                        // See https://github.com/netty/netty/issues/2586
-                        promise.registered();
+            regFuture.addListener((ChannelFutureListener) future -> {
+                Throwable cause = future.cause();
+                if (cause != null) {
+                    // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
+                    // IllegalStateException once we try to access the EventLoop of the Channel.
+                    promise.setFailure(cause);
+                } else {
+                    // Registration was successful, so set the correct executor to use.
+                    // See https://github.com/netty/netty/issues/2586
+                    promise.registered();
 
-                        doBind0(regFuture, channel, localAddress, promise);
-                    }
+                    doBind0(regFuture, channel, localAddress, promise);
                 }
             });
             return promise;
@@ -320,6 +317,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             return new DefaultChannelPromise(new FailedChannel(), GlobalEventExecutor.INSTANCE).setFailure(t);
         }
 
+        /**
+         * 服务端是将ServerSocketChannel绑定到bossGroup 然后ServerSocketChannel负责创建子SocketChannel 再将子SocketChannel绑定到workerGroup
+         */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {
             if (channel.isRegistered()) {
@@ -430,7 +430,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     static void setAttributes(Channel channel, Map.Entry<AttributeKey<?>, Object>[] attrs) {
-        for (Map.Entry<AttributeKey<?>, Object> e: attrs) {
+        for (Map.Entry<AttributeKey<?>, Object> e : attrs) {
             @SuppressWarnings("unchecked")
             AttributeKey<Object> key = (AttributeKey<Object>) e.getKey();
             channel.attr(key).set(e.getValue());
@@ -439,7 +439,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     static void setChannelOptions(
             Channel channel, Map.Entry<ChannelOption<?>, Object>[] options, InternalLogger logger) {
-        for (Map.Entry<ChannelOption<?>, Object> e: options) {
+        for (Map.Entry<ChannelOption<?>, Object> e : options) {
             setChannelOption(channel, e.getKey(), e.getValue(), logger);
         }
     }
@@ -460,8 +460,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     @Override
     public String toString() {
         StringBuilder buf = new StringBuilder()
-            .append(StringUtil.simpleClassName(this))
-            .append('(').append(config()).append(')');
+                .append(StringUtil.simpleClassName(this))
+                .append('(').append(config()).append(')');
         return buf.toString();
     }
 

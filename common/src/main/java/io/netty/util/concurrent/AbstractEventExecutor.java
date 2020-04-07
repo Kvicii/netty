@@ -170,10 +170,10 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
     /**
      * Like {@link #execute(Runnable)} but does not guarantee the task will be run until either
      * a non-lazy task is executed or the executor is shut down.
-     *
+     * <p>
      * This is equivalent to submitting a {@link EventExecutor.LazyRunnable} to
      * {@link #execute(Runnable)} but for an arbitrary {@link Runnable}.
-     *
+     * <p>
      * The default implementation just delegates to {@link #execute(Runnable)}.
      */
     @UnstableApi
@@ -186,5 +186,6 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
      * but does not need to run immediately.
      */
     @UnstableApi
-    public interface LazyRunnable extends Runnable { }
+    public interface LazyRunnable extends Runnable {
+    }
 }

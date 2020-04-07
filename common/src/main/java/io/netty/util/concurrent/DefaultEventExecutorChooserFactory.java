@@ -27,11 +27,13 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
 
     public static final DefaultEventExecutorChooserFactory INSTANCE = new DefaultEventExecutorChooserFactory();
 
-    private DefaultEventExecutorChooserFactory() { }
+    private DefaultEventExecutorChooserFactory() {
+    }
 
     @SuppressWarnings("unchecked")
     @Override
     public EventExecutorChooser newChooser(EventExecutor[] executors) {
+        // 根据是否是2的幂次方选择不同发实现
         if (isPowerOfTwo(executors.length)) {
             return new PowerOfTwoEventExecutorChooser(executors);
         } else {
@@ -53,6 +55,7 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
 
         @Override
         public EventExecutor next() {
+            // 2的幂次方才会使用&提供性能 当idx变成最大值后，会出现短暂的不公平
             return executors[idx.getAndIncrement() & executors.length - 1];
         }
     }
@@ -67,6 +70,7 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
 
         @Override
         public EventExecutor next() {
+            // 递增求模取正数
             return executors[Math.abs(idx.getAndIncrement() % executors.length)];
         }
     }

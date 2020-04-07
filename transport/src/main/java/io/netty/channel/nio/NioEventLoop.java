@@ -35,9 +35,8 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.SelectableChannel;
-import java.nio.channels.Selector;
 import java.nio.channels.SelectionKey;
-
+import java.nio.channels.Selector;
 import java.nio.channels.spi.SelectorProvider;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
@@ -52,7 +51,6 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * {@link SingleThreadEventLoop} implementation which register the {@link Channel}'s to a
  * {@link Selector} and so does the multi-plexing of these in the event loop.
- *
  */
 public final class NioEventLoop extends SingleThreadEventLoop {
 
@@ -66,12 +64,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     private static final int MIN_PREMATURE_SELECTOR_RETURNS = 3;
     private static final int SELECTOR_AUTO_REBUILD_THRESHOLD;
 
-    private final IntSupplier selectNowSupplier = new IntSupplier() {
-        @Override
-        public int get() throws Exception {
-            return selectNow();
-        }
-    };
+    private final IntSupplier selectNowSupplier = () -> selectNow();
 
     // Workaround for JDK NIO bug.
     //
@@ -83,12 +76,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         final String bugLevel = SystemPropertyUtil.get(key);
         if (bugLevel == null) {
             try {
-                AccessController.doPrivileged(new PrivilegedAction<Void>() {
-                    @Override
-                    public Void run() {
-                        System.setProperty(key, "");
-                        return null;
-                    }
+                AccessController.doPrivileged((PrivilegedAction<Void>) () -> {
+                    System.setProperty(key, "");
+                    return null;
                 });
             } catch (final SecurityException e) {
                 logger.debug("Unable to get/set System Property: " + key, e);
@@ -179,23 +169,20 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             return new SelectorTuple(unwrappedSelector);
         }
 
-        Object maybeSelectorImplClass = AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                try {
-                    return Class.forName(
-                            "sun.nio.ch.SelectorImpl",
-                            false,
-                            PlatformDependent.getSystemClassLoader());
-                } catch (Throwable cause) {
-                    return cause;
-                }
+        Object maybeSelectorImplClass = AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            try {
+                return Class.forName(
+                        "sun.nio.ch.SelectorImpl",
+                        false,
+                        PlatformDependent.getSystemClassLoader());
+            } catch (Throwable cause) {
+                return cause;
             }
         });
 
         if (!(maybeSelectorImplClass instanceof Class) ||
-            // ensure the current selector implementation is what we can instrument.
-            !((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass())) {
+                // ensure the current selector implementation is what we can instrument.
+                !((Class<?>) maybeSelectorImplClass).isAssignableFrom(unwrappedSelector.getClass())) {
             if (maybeSelectorImplClass instanceof Throwable) {
                 Throwable t = (Throwable) maybeSelectorImplClass;
                 logger.trace("failed to instrument a special java.util.Set into: {}", unwrappedSelector, t);
@@ -206,47 +193,44 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         final Class<?> selectorImplClass = (Class<?>) maybeSelectorImplClass;
         final SelectedSelectionKeySet selectedKeySet = new SelectedSelectionKeySet();
 
-        Object maybeException = AccessController.doPrivileged(new PrivilegedAction<Object>() {
-            @Override
-            public Object run() {
-                try {
-                    Field selectedKeysField = selectorImplClass.getDeclaredField("selectedKeys");
-                    Field publicSelectedKeysField = selectorImplClass.getDeclaredField("publicSelectedKeys");
+        Object maybeException = AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
+            try {
+                Field selectedKeysField = selectorImplClass.getDeclaredField("selectedKeys");
+                Field publicSelectedKeysField = selectorImplClass.getDeclaredField("publicSelectedKeys");
 
-                    if (PlatformDependent.javaVersion() >= 9 && PlatformDependent.hasUnsafe()) {
-                        // Let us try to use sun.misc.Unsafe to replace the SelectionKeySet.
-                        // This allows us to also do this in Java9+ without any extra flags.
-                        long selectedKeysFieldOffset = PlatformDependent.objectFieldOffset(selectedKeysField);
-                        long publicSelectedKeysFieldOffset =
-                                PlatformDependent.objectFieldOffset(publicSelectedKeysField);
+                if (PlatformDependent.javaVersion() >= 9 && PlatformDependent.hasUnsafe()) {
+                    // Let us try to use sun.misc.Unsafe to replace the SelectionKeySet.
+                    // This allows us to also do this in Java9+ without any extra flags.
+                    long selectedKeysFieldOffset = PlatformDependent.objectFieldOffset(selectedKeysField);
+                    long publicSelectedKeysFieldOffset =
+                            PlatformDependent.objectFieldOffset(publicSelectedKeysField);
 
-                        if (selectedKeysFieldOffset != -1 && publicSelectedKeysFieldOffset != -1) {
-                            PlatformDependent.putObject(
-                                    unwrappedSelector, selectedKeysFieldOffset, selectedKeySet);
-                            PlatformDependent.putObject(
-                                    unwrappedSelector, publicSelectedKeysFieldOffset, selectedKeySet);
-                            return null;
-                        }
-                        // We could not retrieve the offset, lets try reflection as last-resort.
+                    if (selectedKeysFieldOffset != -1 && publicSelectedKeysFieldOffset != -1) {
+                        PlatformDependent.putObject(
+                                unwrappedSelector, selectedKeysFieldOffset, selectedKeySet);
+                        PlatformDependent.putObject(
+                                unwrappedSelector, publicSelectedKeysFieldOffset, selectedKeySet);
+                        return null;
                     }
-
-                    Throwable cause = ReflectionUtil.trySetAccessible(selectedKeysField, true);
-                    if (cause != null) {
-                        return cause;
-                    }
-                    cause = ReflectionUtil.trySetAccessible(publicSelectedKeysField, true);
-                    if (cause != null) {
-                        return cause;
-                    }
-
-                    selectedKeysField.set(unwrappedSelector, selectedKeySet);
-                    publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
-                    return null;
-                } catch (NoSuchFieldException e) {
-                    return e;
-                } catch (IllegalAccessException e) {
-                    return e;
+                    // We could not retrieve the offset, lets try reflection as last-resort.
                 }
+
+                Throwable cause = ReflectionUtil.trySetAccessible(selectedKeysField, true);
+                if (cause != null) {
+                    return cause;
+                }
+                cause = ReflectionUtil.trySetAccessible(publicSelectedKeysField, true);
+                if (cause != null) {
+                    return cause;
+                }
+
+                selectedKeysField.set(unwrappedSelector, selectedKeySet);
+                publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
+                return null;
+            } catch (NoSuchFieldException e) {
+                return e;
+            } catch (IllegalAccessException e) {
+                return e;
             }
         });
 
@@ -259,7 +243,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         selectedKeys = selectedKeySet;
         logger.trace("instrumented a special java.util.Set into: {}", unwrappedSelector);
         return new SelectorTuple(unwrappedSelector,
-                                 new SelectedSelectionKeySetSelector(unwrappedSelector, selectedKeySet));
+                new SelectedSelectionKeySetSelector(unwrappedSelector, selectedKeySet));
     }
 
     /**
@@ -386,7 +370,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
         // Register all channels to the new Selector.
         int nChannels = 0;
-        for (SelectionKey key: oldSelector.keys()) {
+        for (SelectionKey key : oldSelector.keys()) {
             Object a = key.attachment();
             try {
                 if (!key.isValid() || key.channel().keyFor(newSelectorTuple.unwrappedSelector) != null) {
@@ -400,7 +384,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     // Update SelectionKey
                     ((AbstractNioChannel) a).selectionKey = newKey;
                 }
-                nChannels ++;
+                nChannels++;
             } catch (Exception e) {
                 logger.warn("Failed to re-register a Channel to the new Selector.", e);
                 if (a instanceof AbstractNioChannel) {
@@ -431,38 +415,41 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 监听/处理事件
+     */
     @Override
     protected void run() {
         int selectCnt = 0;
-        for (;;) {
+        for (; ; ) {
             try {
                 int strategy;
                 try {
                     strategy = selectStrategy.calculateStrategy(selectNowSupplier, hasTasks());
                     switch (strategy) {
-                    case SelectStrategy.CONTINUE:
-                        continue;
+                        case SelectStrategy.CONTINUE:
+                            continue;
 
-                    case SelectStrategy.BUSY_WAIT:
-                        // fall-through to SELECT since the busy-wait is not supported with NIO
+                        case SelectStrategy.BUSY_WAIT:
+                            // fall-through to SELECT since the busy-wait is not supported with NIO
 
-                    case SelectStrategy.SELECT:
-                        long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
-                        if (curDeadlineNanos == -1L) {
-                            curDeadlineNanos = NONE; // nothing on the calendar
-                        }
-                        nextWakeupNanos.set(curDeadlineNanos);
-                        try {
-                            if (!hasTasks()) {
-                                strategy = select(curDeadlineNanos);
+                        case SelectStrategy.SELECT:
+                            long curDeadlineNanos = nextScheduledTaskDeadlineNanos();
+                            if (curDeadlineNanos == -1L) {
+                                curDeadlineNanos = NONE; // nothing on the calendar
                             }
-                        } finally {
-                            // This update is just to help block unnecessary selector wakeups
-                            // so use of lazySet is ok (no race condition)
-                            nextWakeupNanos.lazySet(AWAKE);
-                        }
-                        // fall through
-                    default:
+                            nextWakeupNanos.set(curDeadlineNanos);
+                            try {
+                                if (!hasTasks()) {
+                                    strategy = select(curDeadlineNanos);
+                                }
+                            } finally {
+                                // This update is just to help block unnecessary selector wakeups
+                                // so use of lazySet is ok (no race condition)
+                                nextWakeupNanos.lazySet(AWAKE);
+                            }
+                            // fall through
+                        default:
                     }
                 } catch (IOException e) {
                     // If we receive an IOException here its because the Selector is messed up. Let's rebuild
@@ -590,7 +577,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     void cancel(SelectionKey key) {
         key.cancel();
-        cancelledKeys ++;
+        cancelledKeys++;
         if (cancelledKeys >= CLEANUP_INTERVAL) {
             cancelledKeys = 0;
             needsToSelectAgain = true;
@@ -606,7 +593,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         Iterator<SelectionKey> i = selectedKeys.iterator();
-        for (;;) {
+        for (; ; ) {
             final SelectionKey k = i.next();
             final Object a = k.attachment();
             i.remove();
@@ -729,15 +716,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             state = 2;
         } finally {
             switch (state) {
-            case 0:
-                k.cancel();
-                invokeChannelUnregistered(task, k, null);
-                break;
-            case 1:
-                if (!k.isValid()) { // Cancelled by channelReady()
+                case 0:
+                    k.cancel();
                     invokeChannelUnregistered(task, k, null);
-                }
-                break;
+                    break;
+                case 1:
+                    if (!k.isValid()) { // Cancelled by channelReady()
+                        invokeChannelUnregistered(task, k, null);
+                    }
+                    break;
             }
         }
     }
@@ -746,7 +733,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         selectAgain();
         Set<SelectionKey> keys = selector.keys();
         Collection<AbstractNioChannel> channels = new ArrayList<AbstractNioChannel>(keys.size());
-        for (SelectionKey k: keys) {
+        for (SelectionKey k : keys) {
             Object a = k.attachment();
             if (a instanceof AbstractNioChannel) {
                 channels.add((AbstractNioChannel) a);
@@ -758,7 +745,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             }
         }
 
-        for (AbstractNioChannel ch: channels) {
+        for (AbstractNioChannel ch : channels) {
             ch.unsafe().close(ch.unsafe().voidPromise());
         }
     }
