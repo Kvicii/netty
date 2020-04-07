@@ -20,10 +20,12 @@ import io.netty.buffer.ByteBufInputStream;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.buffer.Unpooled;
 import io.netty.util.internal.PlatformDependent;
+
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.nio.charset.Charset;
 import java.security.SecureRandom;
@@ -31,15 +33,10 @@ import java.util.Arrays;
 import java.util.Random;
 import java.util.UUID;
 
-import static io.netty.util.CharsetUtil.UTF_8;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static io.netty.util.CharsetUtil.*;
+import static org.junit.Assert.*;
 
-/**
- * {@link AbstractMemoryHttpData} test cases.
- */
+/** {@link AbstractMemoryHttpData} test cases. */
 public class AbstractMemoryHttpDataTest {
 
     @Test
@@ -69,6 +66,42 @@ public class AbstractMemoryHttpDataTest {
         }
     }
 
+    @Test
+    public void testRenameTo() throws Exception {
+        TestHttpData test = new TestHttpData("test", UTF_8, 0);
+        try {
+            File tmpFile = File.createTempFile(UUID.randomUUID().toString(), ".tmp");
+            tmpFile.deleteOnExit();
+            final int totalByteCount = 4096;
+            byte[] bytes = new byte[totalByteCount];
+            PlatformDependent.threadLocalRandom().nextBytes(bytes);
+            ByteBuf content = Unpooled.wrappedBuffer(bytes);
+            test.setContent(content);
+            boolean succ = test.renameTo(tmpFile);
+            assertTrue(succ);
+            FileInputStream fis = new FileInputStream(tmpFile);
+            try {
+                byte[] buf = new byte[totalByteCount];
+                int count = 0;
+                int offset = 0;
+                int size = totalByteCount;
+                while ((count = fis.read(buf, offset, size)) > 0) {
+                    offset += count;
+                    size -= count;
+                    if (offset >= totalByteCount || size <= 0) {
+                        break;
+                    }
+                }
+                assertArrayEquals(bytes, buf);
+                assertEquals(0, fis.available());
+            } finally {
+                fis.close();
+            }
+        } finally {
+            //release the ByteBuf in AbstractMemoryHttpData
+            test.delete();
+        }
+    }
     /**
      * Provide content into HTTP data with input stream.
      *
@@ -116,9 +149,7 @@ public class AbstractMemoryHttpDataTest {
         }
     }
 
-    /**
-     * Memory-based HTTP data implementation for test purposes.
-     */
+    /** Memory-based HTTP data implementation for test purposes. */
     private static final class TestHttpData extends AbstractMemoryHttpData {
         /**
          * Constructs HTTP data for tests.
