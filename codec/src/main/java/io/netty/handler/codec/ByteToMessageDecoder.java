@@ -34,7 +34,7 @@ import static java.lang.Integer.MAX_VALUE;
 /**
  * {@link ChannelInboundHandlerAdapter} which decodes bytes in a stream-like fashion from one {@link ByteBuf} to an
  * other Message type.
- *
+ * <p>
  * For example here is an implementation which reads all readable bytes from
  * the input {@link ByteBuf} and create a new {@link ByteBuf}.
  *
@@ -71,39 +71,39 @@ import static java.lang.Integer.MAX_VALUE;
  * Some methods such as {@link ByteBuf#readBytes(int)} will cause a memory leak if the returned buffer
  * is not released or added to the <tt>out</tt> {@link List}. Use derived buffers like {@link ByteBuf#readSlice(int)}
  * to avoid leaking memory.
+ * 处理粘包 半包的类
  */
 public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter {
 
     /**
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
+     * 使用内存复制方式 -- 默认方式
      */
-    public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
-        @Override
-        public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
-            if (!cumulation.isReadable() && in.isContiguous()) {
-                // If cumulation is empty and input buffer is contiguous, use it directly
-                cumulation.release();
-                return in;
+    public static final Cumulator MERGE_CUMULATOR = (alloc, cumulation, in) -> {
+        if (!cumulation.isReadable() && in.isContiguous()) {
+            // If cumulation is empty and input buffer is contiguous, use it directly
+            cumulation.release();
+            return in;
+        }
+        try {
+            final int required = in.readableBytes();
+            // 按需扩容
+            if (required > cumulation.maxWritableBytes() ||
+                    (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
+                    cumulation.isReadOnly()) {
+                // Expand cumulation (by replacing it) under the following conditions:
+                // - cumulation cannot be resized to accommodate the additional data
+                // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
+                //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
+                return expandCumulation(alloc, cumulation, in);
             }
-            try {
-                final int required = in.readableBytes();
-                if (required > cumulation.maxWritableBytes() ||
-                        (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
-                        cumulation.isReadOnly()) {
-                    // Expand cumulation (by replacing it) under the following conditions:
-                    // - cumulation cannot be resized to accommodate the additional data
-                    // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
-                    //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
-                    return expandCumulation(alloc, cumulation, in);
-                }
-                cumulation.writeBytes(in, in.readerIndex(), required);
-                in.readerIndex(in.writerIndex());
-                return cumulation;
-            } finally {
-                // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
-                // for whatever release (for example because of OutOfMemoryError)
-                in.release();
-            }
+            cumulation.writeBytes(in, in.readerIndex(), required);
+            in.readerIndex(in.writerIndex());
+            return cumulation;
+        } finally {
+            // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
+            // for whatever release (for example because of OutOfMemoryError)
+            in.release();
         }
     };
 
@@ -111,37 +111,36 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by add them to a {@link CompositeByteBuf} and so do no memory copy whenever possible.
      * Be aware that {@link CompositeByteBuf} use a more complex indexing implementation so depending on your use-case
      * and the decoder implementation this may be slower then just use the {@link #MERGE_CUMULATOR}.
+     * 组合方式
      */
-    public static final Cumulator COMPOSITE_CUMULATOR = new Cumulator() {
-        @Override
-        public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
-            if (!cumulation.isReadable()) {
-                cumulation.release();
-                return in;
-            }
-            CompositeByteBuf composite = null;
-            try {
-                if (cumulation instanceof CompositeByteBuf && cumulation.refCnt() == 1) {
-                    composite = (CompositeByteBuf) cumulation;
-                    // Writer index must equal capacity if we are going to "write"
-                    // new components to the end
-                    if (composite.writerIndex() != composite.capacity()) {
-                        composite.capacity(composite.writerIndex());
-                    }
-                } else {
-                    composite = alloc.compositeBuffer(Integer.MAX_VALUE).addFlattenedComponents(true, cumulation);
+    public static final Cumulator COMPOSITE_CUMULATOR = (alloc, cumulation, in) -> {
+        if (!cumulation.isReadable()) {
+            cumulation.release();
+            return in;
+        }
+        CompositeByteBuf composite = null;
+        try {
+            // 空间不够先扩容
+            if (cumulation instanceof CompositeByteBuf && cumulation.refCnt() == 1) {
+                composite = (CompositeByteBuf) cumulation;
+                // Writer index must equal capacity if we are going to "write"
+                // new components to the end
+                if (composite.writerIndex() != composite.capacity()) {
+                    composite.capacity(composite.writerIndex());
                 }
-                composite.addFlattenedComponents(true, in);
-                in = null;
-                return composite;
-            } finally {
-                if (in != null) {
-                    // We must release if the ownership was not transferred as otherwise it may produce a leak
-                    in.release();
-                    // Also release any new buffer allocated if we're not returning it
-                    if (composite != null && composite != cumulation) {
-                        composite.release();
-                    }
+            } else {
+                composite = alloc.compositeBuffer(Integer.MAX_VALUE).addFlattenedComponents(true, cumulation);
+            }
+            composite.addFlattenedComponents(true, in);
+            in = null;
+            return composite;
+        } finally {
+            if (in != null) {
+                // We must release if the ownership was not transferred as otherwise it may produce a leak
+                in.release();
+                // Also release any new buffer allocated if we're not returning it
+                if (composite != null && composite != cumulation) {
+                    composite.release();
                 }
             }
         }
@@ -181,7 +180,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     /**
      * If set then only one message is decoded on each {@link #channelRead(ChannelHandlerContext, Object)}
      * call. This may be useful if you need to do some protocol upgrade and want to make sure nothing is mixed up.
-     *
+     * <p>
      * Default is {@code false} as this has performance impacts.
      */
     public void setSingleDecode(boolean singleDecode) {
@@ -191,7 +190,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     /**
      * If {@code true} then only one message is decoded on each
      * {@link #channelRead(ChannelHandlerContext, Object)} call.
-     *
+     * <p>
      * Default is {@code false} as this has performance impacts.
      */
     public boolean isSingleDecode() {
@@ -263,14 +262,23 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Gets called after the {@link ByteToMessageDecoder} was removed from the actual context and it doesn't handle
      * events anymore.
      */
-    protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception { }
+    protected void handlerRemoved0(ChannelHandlerContext ctx) throws Exception {
+    }
 
+    /**
+     * 解码
+     *
+     * @param ctx
+     * @param msg
+     * @throws Exception
+     */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (msg instanceof ByteBuf) {
             CodecOutputList out = CodecOutputList.newInstance();
             try {
                 first = cumulation == null;
+                // cumulation -- 数据积累器 是第一笔数据直接加到数据积累器 不是则追加
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
                 callDecode(ctx, cumulation, out);
@@ -283,7 +291,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     numReads = 0;
                     cumulation.release();
                     cumulation = null;
-                } else if (++ numReads >= discardAfterReads) {
+                } else if (++numReads >= discardAfterReads) {
                     // We did enough reads already try to discard some bytes so we not risk to see a OOME.
                     // See https://github.com/netty/netty/issues/4275
                     numReads = 0;
@@ -317,7 +325,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Get {@code numElements} out of the {@link CodecOutputList} and forward these through the pipeline.
      */
     static void fireChannelRead(ChannelHandlerContext ctx, CodecOutputList msgs, int numElements) {
-        for (int i = 0; i < numElements; i ++) {
+        for (int i = 0; i < numElements; i++) {
             ctx.fireChannelRead(msgs.getUnsafe(i));
         }
     }
@@ -409,9 +417,9 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Called once data should be decoded from the given {@link ByteBuf}. This method will call
      * {@link #decode(ChannelHandlerContext, ByteBuf, List)} as long as decoding should take place.
      *
-     * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
-     * @param in            the {@link ByteBuf} from which to read data
-     * @param out           the {@link List} to which decoded messages should be added
+     * @param ctx the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
+     * @param in  the {@link ByteBuf} from which to read data
+     * @param out the {@link List} to which decoded messages should be added
      */
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
@@ -434,6 +442,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 }
 
                 int oldInputLength = in.readableBytes();
+                // decode过程中不能进行handler remove清理操作 decode完成之后才可以
                 decodeRemovalReentryProtection(ctx, in, out);
 
                 // Check if this handler was removed before continuing the loop.
@@ -474,10 +483,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * {@link ByteBuf} has nothing to read when return from this method or till nothing was read from the input
      * {@link ByteBuf}.
      *
-     * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
-     * @param in            the {@link ByteBuf} from which to read data
-     * @param out           the {@link List} to which decoded messages should be added
-     * @throws Exception    is thrown if an error occurs
+     * @param ctx the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
+     * @param in  the {@link ByteBuf} from which to read data
+     * @param out the {@link List} to which decoded messages should be added
+     * @throws Exception is thrown if an error occurs
      */
     protected abstract void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception;
 
@@ -486,10 +495,10 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * {@link ByteBuf} has nothing to read when return from this method or till nothing was read from the input
      * {@link ByteBuf}.
      *
-     * @param ctx           the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
-     * @param in            the {@link ByteBuf} from which to read data
-     * @param out           the {@link List} to which decoded messages should be added
-     * @throws Exception    is thrown if an error occurs
+     * @param ctx the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
+     * @param in  the {@link ByteBuf} from which to read data
+     * @param out the {@link List} to which decoded messages should be added
+     * @throws Exception is thrown if an error occurs
      */
     final void decodeRemovalReentryProtection(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
             throws Exception {
@@ -510,7 +519,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     /**
      * Is called one last time when the {@link ChannelHandlerContext} goes in-active. Which means the
      * {@link #channelInactive(ChannelHandlerContext)} was triggered.
-     *
+     * <p>
      * By default this will just call {@link #decode(ChannelHandlerContext, ByteBuf, List)} but sub-classes may
      * override this for some special cleanup operation.
      */
@@ -531,8 +540,8 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         try {
             // This avoids redundant checks and stack depth compared to calling writeBytes(...)
             newCumulation.setBytes(0, oldCumulation, oldCumulation.readerIndex(), oldBytes)
-                .setBytes(oldBytes, in, in.readerIndex(), newBytes)
-                .writerIndex(totalBytes);
+                    .setBytes(oldBytes, in, in.readerIndex(), newBytes)
+                    .writerIndex(totalBytes);
             in.readerIndex(in.writerIndex());
             toRelease = oldCumulation;
             return newCumulation;
