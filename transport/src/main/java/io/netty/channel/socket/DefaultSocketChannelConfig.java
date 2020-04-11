@@ -29,13 +29,20 @@ import java.net.Socket;
 import java.net.SocketException;
 import java.util.Map;
 
-import static io.netty.channel.ChannelOption.*;
+import static io.netty.channel.ChannelOption.ALLOW_HALF_CLOSURE;
+import static io.netty.channel.ChannelOption.IP_TOS;
+import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
+import static io.netty.channel.ChannelOption.SO_LINGER;
+import static io.netty.channel.ChannelOption.SO_RCVBUF;
+import static io.netty.channel.ChannelOption.SO_REUSEADDR;
+import static io.netty.channel.ChannelOption.SO_SNDBUF;
+import static io.netty.channel.ChannelOption.TCP_NODELAY;
 
 /**
  * The default {@link SocketChannelConfig} implementation.
  */
 public class DefaultSocketChannelConfig extends DefaultChannelConfig
-                                        implements SocketChannelConfig {
+        implements SocketChannelConfig {
 
     protected final Socket javaSocket;
     private volatile boolean allowHalfClosure;
@@ -311,7 +318,7 @@ public class DefaultSocketChannelConfig extends DefaultChannelConfig
 
     @Override
     public SocketChannelConfig setAutoRead(boolean autoRead) {
-         super.setAutoRead(autoRead);
+        super.setAutoRead(autoRead);
         return this;
     }
 

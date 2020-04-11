@@ -56,6 +56,7 @@ import java.util.concurrent.TimeUnit;
  * bootstrap.childHandler(new MyChannelInitializer());
  * ...
  * </pre>
+ *
  * @see WriteTimeoutHandler
  * @see IdleStateHandler
  */
@@ -65,8 +66,7 @@ public class ReadTimeoutHandler extends IdleStateHandler {
     /**
      * Creates a new instance.
      *
-     * @param timeoutSeconds
-     *        read timeout in seconds
+     * @param timeoutSeconds read timeout in seconds
      */
     public ReadTimeoutHandler(int timeoutSeconds) {
         this(timeoutSeconds, TimeUnit.SECONDS);
@@ -75,10 +75,8 @@ public class ReadTimeoutHandler extends IdleStateHandler {
     /**
      * Creates a new instance.
      *
-     * @param timeout
-     *        read timeout
-     * @param unit
-     *        the {@link TimeUnit} of {@code timeout}
+     * @param timeout read timeout
+     * @param unit    the {@link TimeUnit} of {@code timeout}
      */
     public ReadTimeoutHandler(long timeout, TimeUnit unit) {
         super(timeout, 0, 0, unit);
@@ -91,9 +89,9 @@ public class ReadTimeoutHandler extends IdleStateHandler {
     }
 
     /**
-     * Is called when a read timeout was detected.
+     * is called when a read timeout was detected.
      */
-    protected void readTimedOut(ChannelHandlerContext ctx) throws Exception {
+    protected void readTimedOut(ChannelHandlerContext ctx) {
         if (!closed) {
             ctx.fireExceptionCaught(ReadTimeoutException.INSTANCE);
             ctx.close();

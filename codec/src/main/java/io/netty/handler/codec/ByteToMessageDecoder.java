@@ -72,6 +72,7 @@ import static java.lang.Integer.MAX_VALUE;
  * is not released or added to the <tt>out</tt> {@link List}. Use derived buffers like {@link ByteBuf#readSlice(int)}
  * to avoid leaking memory.
  * 处理粘包 半包的类
+ * 一次解码器
  */
 public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter {
 
@@ -111,7 +112,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * Cumulate {@link ByteBuf}s by add them to a {@link CompositeByteBuf} and so do no memory copy whenever possible.
      * Be aware that {@link CompositeByteBuf} use a more complex indexing implementation so depending on your use-case
      * and the decoder implementation this may be slower then just use the {@link #MERGE_CUMULATOR}.
-     * 组合方式
+     * 逻辑组合方式
      */
     public static final Cumulator COMPOSITE_CUMULATOR = (alloc, cumulation, in) -> {
         if (!cumulation.isReadable()) {

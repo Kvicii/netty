@@ -18,7 +18,6 @@ package io.netty.buffer;
 
 import io.netty.util.internal.ObjectPool;
 import io.netty.util.internal.ObjectPool.Handle;
-import io.netty.util.internal.ObjectPool.ObjectCreator;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,12 +27,7 @@ import java.nio.ByteBuffer;
 final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
 
     private static final ObjectPool<PooledDirectByteBuf> RECYCLER = ObjectPool.newPool(
-            new ObjectCreator<PooledDirectByteBuf>() {
-        @Override
-        public PooledDirectByteBuf newObject(Handle<PooledDirectByteBuf> handle) {
-            return new PooledDirectByteBuf(handle, 0);
-        }
-    });
+            handle -> new PooledDirectByteBuf(handle, 0));
 
     static PooledDirectByteBuf newInstance(int maxCapacity) {
         PooledDirectByteBuf buf = RECYCLER.get();
@@ -73,17 +67,17 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
     @Override
     protected int _getUnsignedMedium(int index) {
         index = idx(index);
-        return (memory.get(index) & 0xff)     << 16 |
-               (memory.get(index + 1) & 0xff) << 8  |
-               memory.get(index + 2) & 0xff;
+        return (memory.get(index) & 0xff) << 16 |
+                (memory.get(index + 1) & 0xff) << 8 |
+                memory.get(index + 2) & 0xff;
     }
 
     @Override
     protected int _getUnsignedMediumLE(int index) {
         index = idx(index);
-        return memory.get(index)      & 0xff        |
-               (memory.get(index + 1) & 0xff) << 8  |
-               (memory.get(index + 2) & 0xff) << 16;
+        return memory.get(index) & 0xff |
+                (memory.get(index + 1) & 0xff) << 8 |
+                (memory.get(index + 2) & 0xff) << 16;
     }
 
     @Override
@@ -112,7 +106,7 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         if (dst.hasArray()) {
             getBytes(index, dst.array(), dst.arrayOffset() + dstIndex, length);
         } else if (dst.nioBufferCount() > 0) {
-            for (ByteBuffer bb: dst.nioBuffers(dstIndex, length)) {
+            for (ByteBuffer bb : dst.nioBuffers(dstIndex, length)) {
                 int bbLen = bb.remaining();
                 getBytes(index, bb);
                 index += bbLen;
@@ -232,7 +226,7 @@ final class PooledDirectByteBuf extends PooledByteBuf<ByteBuffer> {
         if (src.hasArray()) {
             setBytes(index, src.array(), src.arrayOffset() + srcIndex, length);
         } else if (src.nioBufferCount() > 0) {
-            for (ByteBuffer bb: src.nioBuffers(srcIndex, length)) {
+            for (ByteBuffer bb : src.nioBuffers(srcIndex, length)) {
                 int bbLen = bb.remaining();
                 setBytes(index, bb);
                 index += bbLen;

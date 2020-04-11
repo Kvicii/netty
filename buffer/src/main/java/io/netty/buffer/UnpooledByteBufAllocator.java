@@ -49,8 +49,8 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     /**
      * Create a new instance
      *
-     * @param preferDirect {@code true} if {@link #buffer(int)} should try to allocate a direct buffer rather than
-     *                     a heap buffer
+     * @param preferDirect        {@code true} if {@link #buffer(int)} should try to allocate a direct buffer rather than
+     *                            a heap buffer
      * @param disableLeakDetector {@code true} if the leak-detection should be disabled completely for this
      *                            allocator. This can be useful if the user just want to depend on the GC to handle
      *                            direct buffers when not explicit released.
@@ -62,12 +62,12 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
     /**
      * Create a new instance
      *
-     * @param preferDirect {@code true} if {@link #buffer(int)} should try to allocate a direct buffer rather than
-     *                     a heap buffer
+     * @param preferDirect        {@code true} if {@link #buffer(int)} should try to allocate a direct buffer rather than
+     *                            a heap buffer
      * @param disableLeakDetector {@code true} if the leak-detection should be disabled completely for this
      *                            allocator. This can be useful if the user just want to depend on the GC to handle
      *                            direct buffers when not explicit released.
-     * @param tryNoCleaner {@code true} if we should try to use {@link PlatformDependent#allocateDirectNoCleaner(int)}
+     * @param tryNoCleaner        {@code true} if we should try to use {@link PlatformDependent#allocateDirectNoCleaner(int)}
      *                            to allocate direct memory.
      */
     public UnpooledByteBufAllocator(boolean preferDirect, boolean disableLeakDetector, boolean tryNoCleaner) {

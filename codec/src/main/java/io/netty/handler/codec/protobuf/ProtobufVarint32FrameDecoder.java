@@ -39,7 +39,9 @@ import java.util.List;
  *
  * @see CodedInputStream
  * @see CodedInputByteBufferNano
+ * Varint 长度字段Length是可变的 值越小的数字使用的字节数越少 (像 {@link io.netty.handler.codec.LengthFieldBasedFrameDecoder } 但不是)
  */
+
 public class ProtobufVarint32FrameDecoder extends ByteToMessageDecoder {
 
     // TODO maxFrameLength + safe skip + fail-fast option

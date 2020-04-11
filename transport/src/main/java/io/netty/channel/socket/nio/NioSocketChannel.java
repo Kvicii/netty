@@ -485,11 +485,21 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
             return this;
         }
 
+        /**
+         * 可以根据option选项开启keepalive
+         *
+         * @param option
+         * @param value
+         * @param <T>
+         * @return
+         */
         @Override
         public <T> boolean setOption(ChannelOption<T> option, T value) {
             if (PlatformDependent.javaVersion() >= 7 && option instanceof NioChannelOption) {
+                // childOption(NioChannelOption.SO_KEEPALIVE, true) --> NIO的option设置
                 return NioChannelOption.setOption(jdkChannel(), (NioChannelOption<T>) option, value);
             }
+            // childOption(ChannelOption.SO_KEEPALIVE, true) --> 普通的option设置
             return super.setOption(option, value);
         }
 

@@ -31,7 +31,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 
 /**
  * Default {@link FileRegion} implementation which transfer data from a {@link FileChannel} or {@link File}.
- *
+ * <p>
  * Be aware that the {@link FileChannel} will be automatically closed once {@link #refCnt()} returns
  * {@code 0}.
  */
@@ -47,9 +47,9 @@ public class DefaultFileRegion extends AbstractReferenceCounted implements FileR
     /**
      * Create a new instance
      *
-     * @param file      the {@link FileChannel} which should be transferred
-     * @param position  the position from which the transfer should start
-     * @param count     the number of bytes to transfer
+     * @param file     the {@link FileChannel} which should be transferred
+     * @param position the position from which the transfer should start
+     * @param count    the number of bytes to transfer
      */
     public DefaultFileRegion(FileChannel file, long position, long count) {
         this.file = ObjectUtil.checkNotNull(file, "file");
@@ -62,9 +62,9 @@ public class DefaultFileRegion extends AbstractReferenceCounted implements FileR
      * Create a new instance using the given {@link File}. The {@link File} will be opened lazily or
      * explicitly via {@link #open()}.
      *
-     * @param f         the {@link File} which should be transferred
-     * @param position  the position from which the transfer should start
-     * @param count     the number of bytes to transfer
+     * @param f        the {@link File} which should be transferred
+     * @param position the position from which the transfer should start
+     * @param count    the number of bytes to transfer
      */
     public DefaultFileRegion(File f, long position, long count) {
         this.f = ObjectUtil.checkNotNull(f, "f");
@@ -116,7 +116,7 @@ public class DefaultFileRegion extends AbstractReferenceCounted implements FileR
         if (count < 0 || position < 0) {
             throw new IllegalArgumentException(
                     "position out of range: " + position +
-                    " (expected: 0 - " + (this.count - 1) + ')');
+                            " (expected: 0 - " + (this.count - 1) + ')');
         }
         if (count == 0) {
             return 0L;
@@ -127,6 +127,7 @@ public class DefaultFileRegion extends AbstractReferenceCounted implements FileR
         // Call open to make sure fc is initialized. This is a no-oop if we called it before.
         open();
 
+        // 包装了NIO的transferTo方法实现零拷贝
         long written = file.transferTo(this.position + position, count, target);
         if (written > 0) {
             transferred += written;

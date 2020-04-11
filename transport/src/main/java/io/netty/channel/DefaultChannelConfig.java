@@ -56,6 +56,7 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     protected final Channel channel;
 
+    // 默认的bytebuf分配器
     private volatile ByteBufAllocator allocator = ByteBufAllocator.DEFAULT;
     private volatile RecvByteBufAllocator rcvBufAllocator;
     private volatile MessageSizeEstimator msgSizeEstimator = DEFAULT_MSG_SIZE_ESTIMATOR;
@@ -93,7 +94,7 @@ public class DefaultChannelConfig implements ChannelConfig {
         if (result == null) {
             result = new IdentityHashMap<ChannelOption<?>, Object>();
         }
-        for (ChannelOption<?> o: options) {
+        for (ChannelOption<?> o : options) {
             result.put(o, getOption(o));
         }
         return result;
@@ -105,7 +106,7 @@ public class DefaultChannelConfig implements ChannelConfig {
         ObjectUtil.checkNotNull(options, "options");
 
         boolean setAllOptions = true;
-        for (Entry<ChannelOption<?>, ?> e: options.entrySet()) {
+        for (Entry<ChannelOption<?>, ?> e : options.entrySet()) {
             if (!setOption((ChannelOption<Object>) e.getKey(), e.getValue())) {
                 setAllOptions = false;
             }
@@ -115,7 +116,7 @@ public class DefaultChannelConfig implements ChannelConfig {
     }
 
     @Override
-    @SuppressWarnings({ "unchecked", "deprecation" })
+    @SuppressWarnings({"unchecked", "deprecation"})
     public <T> T getOption(ChannelOption<T> option) {
         ObjectUtil.checkNotNull(option, "option");
 
@@ -213,8 +214,9 @@ public class DefaultChannelConfig implements ChannelConfig {
     /**
      * {@inheritDoc}
      * <p>
+     *
      * @throws IllegalStateException if {@link #getRecvByteBufAllocator()} does not return an object of type
-     * {@link MaxMessagesRecvByteBufAllocator}.
+     *                               {@link MaxMessagesRecvByteBufAllocator}.
      */
     @Override
     @Deprecated
@@ -231,8 +233,9 @@ public class DefaultChannelConfig implements ChannelConfig {
     /**
      * {@inheritDoc}
      * <p>
+     *
      * @throws IllegalStateException if {@link #getRecvByteBufAllocator()} does not return an object of type
-     * {@link MaxMessagesRecvByteBufAllocator}.
+     *                               {@link MaxMessagesRecvByteBufAllocator}.
      */
     @Override
     @Deprecated
@@ -291,9 +294,10 @@ public class DefaultChannelConfig implements ChannelConfig {
 
     /**
      * Set the {@link RecvByteBufAllocator} which is used for the channel to allocate receive buffers.
+     *
      * @param allocator the allocator to set.
-     * @param metadata Used to set the {@link ChannelMetadata#defaultMaxMessagesPerRead()} if {@code allocator}
-     * is of type {@link MaxMessagesRecvByteBufAllocator}.
+     * @param metadata  Used to set the {@link ChannelMetadata#defaultMaxMessagesPerRead()} if {@code allocator}
+     *                  is of type {@link MaxMessagesRecvByteBufAllocator}.
      */
     private void setRecvByteBufAllocator(RecvByteBufAllocator allocator, ChannelMetadata metadata) {
         if (allocator instanceof MaxMessagesRecvByteBufAllocator) {
@@ -324,7 +328,8 @@ public class DefaultChannelConfig implements ChannelConfig {
      * Is called once {@link #setAutoRead(boolean)} is called with {@code false} and {@link #isAutoRead()} was
      * {@code true} before.
      */
-    protected void autoReadCleared() { }
+    protected void autoReadCleared() {
+    }
 
     @Override
     public boolean isAutoClose() {
@@ -345,7 +350,7 @@ public class DefaultChannelConfig implements ChannelConfig {
     @Override
     public ChannelConfig setWriteBufferHighWaterMark(int writeBufferHighWaterMark) {
         checkPositiveOrZero(writeBufferHighWaterMark, "writeBufferHighWaterMark");
-        for (;;) {
+        for (; ; ) {
             WriteBufferWaterMark waterMark = writeBufferWaterMark;
             if (writeBufferHighWaterMark < waterMark.low()) {
                 throw new IllegalArgumentException(
@@ -368,7 +373,7 @@ public class DefaultChannelConfig implements ChannelConfig {
     @Override
     public ChannelConfig setWriteBufferLowWaterMark(int writeBufferLowWaterMark) {
         checkPositiveOrZero(writeBufferLowWaterMark, "writeBufferLowWaterMark");
-        for (;;) {
+        for (; ; ) {
             WriteBufferWaterMark waterMark = writeBufferWaterMark;
             if (writeBufferLowWaterMark > waterMark.high()) {
                 throw new IllegalArgumentException(

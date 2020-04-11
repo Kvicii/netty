@@ -60,6 +60,7 @@ import java.util.concurrent.TimeUnit;
  * bootstrap.childHandler(new MyChannelInitializer());
  * ...
  * </pre>
+ *
  * @see ReadTimeoutHandler
  * @see IdleStateHandler
  */
@@ -78,8 +79,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     /**
      * Creates a new instance.
      *
-     * @param timeoutSeconds
-     *        write timeout in seconds
+     * @param timeoutSeconds write timeout in seconds
      */
     public WriteTimeoutHandler(int timeoutSeconds) {
         this(timeoutSeconds, TimeUnit.SECONDS);
@@ -88,10 +88,8 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     /**
      * Creates a new instance.
      *
-     * @param timeout
-     *        write timeout
-     * @param unit
-     *        the {@link TimeUnit} of {@code timeout}
+     * @param timeout write timeout
+     * @param unit    the {@link TimeUnit} of {@code timeout}
      */
     public WriteTimeoutHandler(long timeout, TimeUnit unit) {
         ObjectUtil.checkNotNull(unit, "unit");
@@ -107,13 +105,14 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         if (timeoutNanos > 0) {
             promise = promise.unvoid();
+            // 写的时候schedule一个task检查
             scheduleTimeout(ctx, promise);
         }
         ctx.write(msg, promise);
     }
 
     @Override
-    public void handlerRemoved(ChannelHandlerContext ctx) throws Exception {
+    public void handlerRemoved(ChannelHandlerContext ctx) {
         WriteTimeoutTask task = lastTask;
         lastTask = null;
         while (task != null) {
@@ -171,7 +170,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
     /**
      * Is called when a write timeout was detected
      */
-    protected void writeTimedOut(ChannelHandlerContext ctx) throws Exception {
+    protected void writeTimedOut(ChannelHandlerContext ctx) {
         if (!closed) {
             ctx.fireExceptionCaught(WriteTimeoutException.INSTANCE);
             ctx.close();
@@ -202,6 +201,10 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
             // See https://github.com/netty/netty/issues/2159
             if (!promise.isDone()) {
                 try {
+                    /**
+                     * 根据写操作是否完成才触发 和 {@link ReadTimeoutHandler} 不同
+                     * 而 {@link ReadTimeoutHandler} 判断的是读是否超时
+                     */
                     writeTimedOut(ctx);
                 } catch (Throwable t) {
                     ctx.fireExceptionCaught(t);
@@ -211,7 +214,7 @@ public class WriteTimeoutHandler extends ChannelOutboundHandlerAdapter {
         }
 
         @Override
-        public void operationComplete(ChannelFuture future) throws Exception {
+        public void operationComplete(ChannelFuture future) {
             // scheduledFuture has already be set when reaching here
             scheduledFuture.cancel(false);
             removeWriteTimeoutTask(this);

@@ -162,6 +162,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     protected abstract ByteBuffer newInternalNioBuffer(T memory);
 
+    /**
+     * 归还对象到内存池 pipeline的tail会调用
+     */
     @Override
     protected final void deallocate() {
         if (handle >= 0) {
@@ -213,7 +216,7 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     @Override
     public final ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[] { nioBuffer(index, length) };
+        return new ByteBuffer[]{nioBuffer(index, length)};
     }
 
     @Override

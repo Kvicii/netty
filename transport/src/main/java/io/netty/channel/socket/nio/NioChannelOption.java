@@ -62,11 +62,12 @@ public final class NioChannelOption<T> extends ChannelOption<T> {
             return false;
         }
         if (channel instanceof ServerSocketChannel && option.option == java.net.StandardSocketOptions.IP_TOS) {
-            // Skip IP_TOS as a workaround for a JDK bug:
+            // Skip IP_TOS as a workaround for a JDK bug 忽略JDK的bug:
             // See http://mail.openjdk.java.net/pipermail/nio-dev/2018-August/005365.html
             return false;
         }
         try {
+            // 调用JDK的方法设置option(keepalive)
             channel.setOption(option.option, value);
             return true;
         } catch (IOException e) {

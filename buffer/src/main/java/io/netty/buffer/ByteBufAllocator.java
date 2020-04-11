@@ -131,4 +131,4 @@ public interface ByteBufAllocator {
      * {@code minNewCapacity} with {@code maxCapacity} as upper-bound.
      */
     int calculateNewCapacity(int minNewCapacity, int maxCapacity);
- }
+}

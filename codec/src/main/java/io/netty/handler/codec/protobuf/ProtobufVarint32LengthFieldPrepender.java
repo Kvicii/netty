@@ -52,7 +52,8 @@ public class ProtobufVarint32LengthFieldPrepender extends MessageToByteEncoder<B
 
     /**
      * Writes protobuf varint32 to (@link ByteBuf).
-     * @param out to be written to
+     *
+     * @param out   to be written to
      * @param value to be written
      */
     static void writeRawVarint32(ByteBuf out, int value) {
@@ -69,11 +70,12 @@ public class ProtobufVarint32LengthFieldPrepender extends MessageToByteEncoder<B
 
     /**
      * Computes size of protobuf varint32 after encoding.
+     *
      * @param value which is to be encoded.
      * @return size of value encoded as protobuf varint32.
      */
     static int computeRawVarint32Size(final int value) {
-        if ((value & (0xffffffff <<  7)) == 0) {
+        if ((value & (0xffffffff << 7)) == 0) {
             return 1;
         }
         if ((value & (0xffffffff << 14)) == 0) {

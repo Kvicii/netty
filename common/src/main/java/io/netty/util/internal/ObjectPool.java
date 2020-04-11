@@ -24,7 +24,8 @@ import io.netty.util.Recycler;
  */
 public abstract class ObjectPool<T> {
 
-    ObjectPool() { }
+    ObjectPool() {
+    }
 
     /**
      * Get a {@link Object} from the {@link ObjectPool}. The returned {@link Object} may be created via
@@ -35,6 +36,7 @@ public abstract class ObjectPool<T> {
     /**
      * Handle for an pooled {@link Object} that will be used to notify the {@link ObjectPool} once it can
      * reuse the pooled {@link Object} again.
+     *
      * @param <T>
      */
     public interface Handle<T> {
@@ -71,7 +73,7 @@ public abstract class ObjectPool<T> {
         private final Recycler<T> recycler;
 
         RecyclerObjectPool(final ObjectCreator<T> creator) {
-             recycler = new Recycler<T>() {
+            recycler = new Recycler<T>() {
                 @Override
                 protected T newObject(Handle<T> handle) {
                     return creator.newObject(handle);

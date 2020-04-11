@@ -34,6 +34,7 @@ import static java.lang.Math.min;
 
 /**
  * Light-weight object pool based on a thread-local stack.
+ * 轻量级对象池--需要根据场景分析
  *
  * @param <T> the type of the pooled object
  */
@@ -42,11 +43,8 @@ public abstract class Recycler<T> {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(Recycler.class);
 
     @SuppressWarnings("rawtypes")
-    private static final Handle NOOP_HANDLE = new Handle() {
-        @Override
-        public void recycle(Object object) {
-            // NOOP
-        }
+    private static final Handle NOOP_HANDLE = object -> {
+        // NOOP
     };
     private static final AtomicInteger ID_GENERATOR = new AtomicInteger(Integer.MIN_VALUE);
     private static final int OWN_THREAD_ID = ID_GENERATOR.getAndIncrement();
@@ -120,9 +118,9 @@ public abstract class Recycler<T> {
         protected void onRemoval(Stack<T> value) {
             // Let us remove the WeakOrderQueue from the WeakHashMap directly if its safe to remove some overhead
             if (value.threadRef.get() == Thread.currentThread()) {
-               if (DELAYED_RECYCLED.isSet()) {
-                   DELAYED_RECYCLED.get().remove(value);
-               }
+                if (DELAYED_RECYCLED.isSet()) {
+                    DELAYED_RECYCLED.get().remove(value);
+                }
             }
         }
     };
@@ -155,12 +153,14 @@ public abstract class Recycler<T> {
 
     @SuppressWarnings("unchecked")
     public final T get() {
+        // 没有开启池化直接new
         if (maxCapacityPerThread == 0) {
             return newObject((Handle<T>) NOOP_HANDLE);
         }
         Stack<T> stack = threadLocal.get();
         DefaultHandle<T> handle = stack.pop();
         if (handle == null) {
+            // 池里没有新建一个
             handle = stack.newHandle();
             handle.value = newObject(handle);
         }
@@ -195,7 +195,8 @@ public abstract class Recycler<T> {
 
     protected abstract T newObject(Handle<T> handle);
 
-    public interface Handle<T> extends ObjectPool.Handle<T>  { }
+    public interface Handle<T> extends ObjectPool.Handle<T> {
+    }
 
     private static final class DefaultHandle<T> implements Handle<T> {
         int lastRecycledId;
@@ -220,18 +221,18 @@ public abstract class Recycler<T> {
             if (lastRecycledId != recycleId || stack == null) {
                 throw new IllegalStateException("recycled already");
             }
-
+            // 将使用完的对象归还到内存池
             stack.push(this);
         }
     }
 
     private static final FastThreadLocal<Map<Stack<?>, WeakOrderQueue>> DELAYED_RECYCLED =
             new FastThreadLocal<Map<Stack<?>, WeakOrderQueue>>() {
-        @Override
-        protected Map<Stack<?>, WeakOrderQueue> initialValue() {
-            return new WeakHashMap<Stack<?>, WeakOrderQueue>();
-        }
-    };
+                @Override
+                protected Map<Stack<?>, WeakOrderQueue> initialValue() {
+                    return new WeakHashMap<>();
+                }
+            };
 
     // a queue that makes only moderate guarantees about visibility: items are seen in the correct order,
     // but we aren't absolutely guaranteed to ever see anything at all, thereby keeping the queue cheap to maintain
@@ -295,7 +296,7 @@ public abstract class Recycler<T> {
             }
 
             static boolean reserveSpaceForLink(AtomicInteger availableSharedCapacity) {
-                for (;;) {
+                for (; ; ) {
                     int available = availableSharedCapacity.get();
                     if (available < LINK_CAPACITY) {
                         return false;
@@ -448,7 +449,7 @@ public abstract class Recycler<T> {
                         continue;
                     }
                     element.stack = dst;
-                    dstElems[newDstSize ++] = element;
+                    dstElems[newDstSize++] = element;
                 }
 
                 if (srcEnd == LINK_CAPACITY && head.next != null) {
@@ -528,7 +529,7 @@ public abstract class Recycler<T> {
             return newCapacity;
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
+        @SuppressWarnings({"unchecked", "rawtypes"})
         DefaultHandle<T> pop() {
             int size = this.size;
             if (size == 0) {
@@ -541,7 +542,7 @@ public abstract class Recycler<T> {
                     return null;
                 }
             }
-            size --;
+            size--;
             DefaultHandle ret = elements[size];
             elements[size] = null;
             // As we already set the element[size] to null we also need to store the updated size before we do
@@ -594,7 +595,7 @@ public abstract class Recycler<T> {
                     // performing a volatile read to confirm there is no data left to collect.
                     // We never unlink the first queue, as we don't want to synchronize on updating the head.
                     if (cursor.hasFinalData()) {
-                        for (;;) {
+                        for (; ; ) {
                             if (cursor.transfer(this)) {
                                 success = true;
                             } else {

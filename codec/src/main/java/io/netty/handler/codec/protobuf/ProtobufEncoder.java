@@ -28,7 +28,7 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 
 import java.util.List;
 
-import static io.netty.buffer.Unpooled.*;
+import static io.netty.buffer.Unpooled.wrappedBuffer;
 
 /**
  * Encodes the requested <a href="https://github.com/google/protobuf">Google

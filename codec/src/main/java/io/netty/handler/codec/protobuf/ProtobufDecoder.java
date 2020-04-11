@@ -77,7 +77,6 @@ public class ProtobufDecoder extends MessageToMessageDecoder<ByteBuf> {
         } catch (Throwable t) {
             // Ignore
         }
-
         HAS_PARSER = hasParser;
     }
 
@@ -114,6 +113,7 @@ public class ProtobufDecoder extends MessageToMessageDecoder<ByteBuf> {
             offset = 0;
         }
 
+        // 根据有无扩展决定解法
         if (extensionRegistry == null) {
             if (HAS_PARSER) {
                 out.add(prototype.getParserForType().parseFrom(array, offset, length));

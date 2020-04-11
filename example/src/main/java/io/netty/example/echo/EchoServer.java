@@ -16,6 +16,7 @@
 package io.netty.example.echo;
 
 import io.netty.bootstrap.ServerBootstrap;
+import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
@@ -23,6 +24,7 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioChannelOption;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
@@ -59,6 +61,15 @@ public final class EchoServer {
                     .channel(NioServerSocketChannel.class)
                     .option(ChannelOption.SO_BACKLOG, 100)
                     .handler(new LoggingHandler(LogLevel.INFO))
+                    // 两种设置keepalive的风格
+                    .childOption(ChannelOption.SO_KEEPALIVE, true)
+                    .childOption(NioChannelOption.SO_KEEPALIVE, true)
+                    // ====================
+                    // 选择内存池实现 默认使用池化的实现
+                    // .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+                    // 选择堆外/堆外内存的内存池实现--方式一
+                    // 设置io.netty.type参数--方式二
+                    .childOption(ChannelOption.ALLOCATOR, new PooledByteBufAllocator(false))
                     .childHandler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel(SocketChannel ch) {

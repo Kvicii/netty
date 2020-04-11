@@ -31,6 +31,7 @@ class CompactObjectOutputStream extends ObjectOutputStream {
 
     @Override
     protected void writeStreamHeader() throws IOException {
+        // 相比于JDK少了一个.writeShort(STREAM_MAGIC) 节省了空间
         writeByte(STREAM_VERSION);
     }
 
@@ -38,11 +39,13 @@ class CompactObjectOutputStream extends ObjectOutputStream {
     protected void writeClassDescriptor(ObjectStreamClass desc) throws IOException {
         Class<?> clazz = desc.forClass();
         if (clazz.isPrimitive() || clazz.isArray() || clazz.isInterface() ||
-            desc.getSerialVersionUID() == 0) {
+                desc.getSerialVersionUID() == 0) {
             write(TYPE_FAT_DESCRIPTOR);
             super.writeClassDescriptor(desc);
         } else {
+            // 相比于JDK少了元信息
             write(TYPE_THIN_DESCRIPTOR);
+            // 虽然相比JDK少了一部分信息 但是可以通过类名反射读取出来
             writeUTF(desc.getName());
         }
     }

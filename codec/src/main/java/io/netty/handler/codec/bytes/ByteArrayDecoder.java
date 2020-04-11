@@ -48,11 +48,12 @@ import java.util.List;
  *     ...
  * }
  * </pre>
+ * 将netty的ByteBuf转换为JDK的字节数组
  */
 public class ByteArrayDecoder extends MessageToMessageDecoder<ByteBuf> {
     @Override
     protected void decode(ChannelHandlerContext ctx, ByteBuf msg, List<Object> out) throws Exception {
-         // copy the ByteBuf content to a byte array
+        // copy the ByteBuf content to a byte array
         out.add(ByteBufUtil.getBytes(msg));
     }
 }

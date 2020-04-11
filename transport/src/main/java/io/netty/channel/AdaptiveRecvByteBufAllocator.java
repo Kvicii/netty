@@ -54,7 +54,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
         }
 
         SIZE_TABLE = new int[sizeTable.size()];
-        for (int i = 0; i < SIZE_TABLE.length; i ++) {
+        for (int i = 0; i < SIZE_TABLE.length; i++) {
             SIZE_TABLE[i] = sizeTable.get(i);
         }
     }
@@ -66,7 +66,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
     public static final AdaptiveRecvByteBufAllocator DEFAULT = new AdaptiveRecvByteBufAllocator();
 
     private static int getSizeTableIndex(final int size) {
-        for (int low = 0, high = SIZE_TABLE.length - 1;;) {
+        for (int low = 0, high = SIZE_TABLE.length - 1; ; ) {
             if (high < low) {
                 return low;
             }
@@ -121,8 +121,18 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
             return nextReceiveBufferSize;
         }
 
+        /**
+         * 根据接收到buffer数据的大小动态调整下一个要分配的Buffer的大小
+         * 原则是空间足够大用以接收数据
+         * 空间尽可能小避免空间浪费
+         *
+         * @param actualReadBytes
+         */
         private void record(int actualReadBytes) {
+            // 尝试是否可以减少分配空间仍能满足需求
+            // 尝试的方式--当前实际读取的size是否 <= 打算缩小的尺寸
             if (actualReadBytes <= SIZE_TABLE[max(0, index - INDEX_DECREMENT)]) {
+                // decreaseNow表示连续两次尝试减少都可以--那么则减少
                 if (decreaseNow) {
                     index = max(index - INDEX_DECREMENT, minIndex);
                     nextReceiveBufferSize = SIZE_TABLE[index];
@@ -131,6 +141,7 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
                     decreaseNow = true;
                 }
             } else if (actualReadBytes >= nextReceiveBufferSize) {
+                // 判断是否实际读取的数据 >= 预估的 是则扩容
                 index = min(index + INDEX_INCREMENT, maxIndex);
                 nextReceiveBufferSize = SIZE_TABLE[index];
                 decreaseNow = false;
@@ -159,9 +170,9 @@ public class AdaptiveRecvByteBufAllocator extends DefaultMaxMessagesRecvByteBufA
     /**
      * Creates a new predictor with the specified parameters.
      *
-     * @param minimum  the inclusive lower bound of the expected buffer size
-     * @param initial  the initial buffer size when no feed back was received
-     * @param maximum  the inclusive upper bound of the expected buffer size
+     * @param minimum the inclusive lower bound of the expected buffer size
+     * @param initial the initial buffer size when no feed back was received
+     * @param maximum the inclusive upper bound of the expected buffer size
      */
     public AdaptiveRecvByteBufAllocator(int minimum, int initial, int maximum) {
         checkPositive(minimum, "minimum");
