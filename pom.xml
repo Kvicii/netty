@@ -336,7 +336,8 @@
     <os.detection.classifierWithLikes>fedora,suse,arch</os.detection.classifierWithLikes>
     <tcnative.artifactId>netty-tcnative</tcnative.artifactId>
     <tcnative.version>2.0.30.Final</tcnative.version>
-    <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>
+<!--    <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>-->
+    <tcnative.classifier>osx-x86_64</tcnative.classifier>
     <conscrypt.groupId>org.conscrypt</conscrypt.groupId>
     <conscrypt.artifactId>conscrypt-openjdk-uber</conscrypt.artifactId>
     <conscrypt.version>1.3.0</conscrypt.version>
@@ -747,37 +748,37 @@
     </extensions>
 
     <plugins>
-<!--      <plugin>-->
-<!--        <groupId>com.github.siom79.japicmp</groupId>-->
-<!--        <artifactId>japicmp-maven-plugin</artifactId>-->
-<!--        <version>0.14.3</version>-->
-<!--        <configuration>-->
-<!--          <parameter>-->
-<!--            <ignoreMissingOldVersion>true</ignoreMissingOldVersion>-->
-<!--            <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>-->
-<!--            <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>-->
-<!--            <oldVersionPattern>\d+\.\d+\.\d+\.Final</oldVersionPattern>-->
-<!--            <ignoreMissingClassesByRegularExpressions>-->
-<!--              &lt;!&ndash; ignore everything which is not part of netty itself as the plugin can not handle optional dependencies &ndash;&gt;-->
-<!--              <ignoreMissingClassesByRegularExpression>^(?!io\.netty\.).*</ignoreMissingClassesByRegularExpression>-->
-<!--              <ignoreMissingClassesByRegularExpression>^io\.netty\.internal\.tcnative\..*</ignoreMissingClassesByRegularExpression>-->
-<!--            </ignoreMissingClassesByRegularExpressions>-->
-<!--            <excludes>-->
-<!--              <exclude>@io.netty.util.internal.UnstableApi</exclude>-->
-<!--              <exclude>io.netty.util.internal.shaded</exclude>-->
-<!--            </excludes>-->
-<!--          </parameter>-->
-<!--          <skip>${skipJapicmp}</skip>-->
-<!--        </configuration>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <phase>verify</phase>-->
-<!--            <goals>-->
-<!--              <goal>cmp</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
+      <plugin>
+        <groupId>com.github.siom79.japicmp</groupId>
+        <artifactId>japicmp-maven-plugin</artifactId>
+        <version>0.14.3</version>
+        <configuration>
+          <parameter>
+            <ignoreMissingOldVersion>true</ignoreMissingOldVersion>
+            <breakBuildOnBinaryIncompatibleModifications>true</breakBuildOnBinaryIncompatibleModifications>
+            <breakBuildOnSourceIncompatibleModifications>true</breakBuildOnSourceIncompatibleModifications>
+            <oldVersionPattern>\d+\.\d+\.\d+\.Final</oldVersionPattern>
+            <ignoreMissingClassesByRegularExpressions>
+              <!-- ignore everything which is not part of netty itself as the plugin can not handle optional dependencies -->
+              <ignoreMissingClassesByRegularExpression>^(?!io\.netty\.).*</ignoreMissingClassesByRegularExpression>
+              <ignoreMissingClassesByRegularExpression>^io\.netty\.internal\.tcnative\..*</ignoreMissingClassesByRegularExpression>
+            </ignoreMissingClassesByRegularExpressions>
+            <excludes>
+              <exclude>@io.netty.util.internal.UnstableApi</exclude>
+              <exclude>io.netty.util.internal.shaded</exclude>
+            </excludes>
+          </parameter>
+          <skip>${skipJapicmp}</skip>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>verify</phase>
+            <goals>
+              <goal>cmp</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <plugin>
         <artifactId>maven-enforcer-plugin</artifactId>
         <version>${enforcer.plugin.version}</version>

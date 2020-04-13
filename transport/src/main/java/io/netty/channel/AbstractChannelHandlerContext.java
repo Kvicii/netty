@@ -215,12 +215,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         if (executor.inEventLoop()) {
             next.invokeChannelActive();
         } else {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    next.invokeChannelActive();
-                }
-            });
+            executor.execute(() -> next.invokeChannelActive());
         }
     }
 
@@ -364,12 +359,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         if (executor.inEventLoop()) {
             next.invokeChannelRead(m);
         } else {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    next.invokeChannelRead(m);
-                }
-            });
+            executor.execute(() -> next.invokeChannelRead(m));
         }
     }
 
@@ -490,12 +480,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
         if (executor.inEventLoop()) {
             next.invokeBind(localAddress, promise);
         } else {
-            safeExecute(executor, new Runnable() {
-                @Override
-                public void run() {
-                    next.invokeBind(localAddress, promise);
-                }
-            }, promise, null, false);
+            safeExecute(executor, () -> next.invokeBind(localAddress, promise), promise, null, false);
         }
         return promise;
     }

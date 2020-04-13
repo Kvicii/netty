@@ -72,9 +72,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * Create a new instance
      *
-     * @param parent            the parent {@link Channel} by which this instance was created. May be {@code null}
-     * @param ch                the underlying {@link SelectableChannel} on which it operates
-     * @param readInterestOp    the ops to set to receive data from the {@link SelectableChannel}
+     * @param parent         the parent {@link Channel} by which this instance was created. May be {@code null}
+     * @param ch             the underlying {@link SelectableChannel} on which it operates
+     * @param readInterestOp the ops to set to receive data from the {@link SelectableChannel}
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
@@ -87,7 +87,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 ch.close();
             } catch (IOException e2) {
                 logger.warn(
-                            "Failed to close a partially initialized socket.", e2);
+                        "Failed to close a partially initialized socket.", e2);
             }
 
             throw new ChannelException("Failed to enter non-blocking mode.", e);
@@ -254,29 +254,23 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // Schedule connect timeout.
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
-                        connectTimeoutFuture = eventLoop().schedule(new Runnable() {
-                            @Override
-                            public void run() {
-                                ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;
-                                ConnectTimeoutException cause =
-                                        new ConnectTimeoutException("connection timed out: " + remoteAddress);
-                                if (connectPromise != null && connectPromise.tryFailure(cause)) {
-                                    close(voidPromise());
-                                }
+                        connectTimeoutFuture = eventLoop().schedule(() -> {
+                            ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;
+                            ConnectTimeoutException cause =
+                                    new ConnectTimeoutException("connection timed out: " + remoteAddress);
+                            if (connectPromise != null && connectPromise.tryFailure(cause)) {
+                                close(voidPromise());
                             }
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
 
-                    promise.addListener(new ChannelFutureListener() {
-                        @Override
-                        public void operationComplete(ChannelFuture future) throws Exception {
-                            if (future.isCancelled()) {
-                                if (connectTimeoutFuture != null) {
-                                    connectTimeoutFuture.cancel(false);
-                                }
-                                connectPromise = null;
-                                close(voidPromise());
+                    promise.addListener((ChannelFutureListener) future -> {
+                        if (future.isCancelled()) {
+                            if (connectTimeoutFuture != null) {
+                                connectTimeoutFuture.cancel(false);
                             }
+                            connectPromise = null;
+                            close(voidPromise());
                         }
                     });
                 }
@@ -375,9 +369,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     @Override
     protected void doRegister() throws Exception {
         boolean selected = false;
-        for (;;) {
+        for (; ; ) {
             try {
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
+                logger.info("register server socket channel to selector, ops:{}", 0);
                 return;
             } catch (CancelledKeyException e) {
                 if (!selected) {
@@ -395,7 +390,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     }
 
     @Override
-    protected void doDeregister() throws Exception {
+    protected void doDeregister() {
         eventLoop().cancel(selectionKey());
     }
 
@@ -409,8 +404,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         readPending = true;
 
-        final int interestOps = selectionKey.interestOps();
-        if ((interestOps & readInterestOp) == 0) {
+        final int interestOps = selectionKey.interestOps(); // socket连接建立时参数readInterestOp的值为1 未接收数据做好了准备
+        if ((interestOps & readInterestOp) == 0) {  // 判断是否开启了readInterestOp 没有则监听readInterestOp
+            logger.info("register OP_ACCEPT, readInterestOp:{}", readInterestOp);
             selectionKey.interestOps(interestOps | readInterestOp);
         }
     }

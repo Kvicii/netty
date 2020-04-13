@@ -142,7 +142,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         }
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
 
-        p.addLast(new ChannelInitializer<Channel>() {
+        p.addLast(new ChannelInitializer<Channel>() { // ChannelInitializer是一个一次性的 负责初始化的handler 负责添加一个ServerBootstrapAcceptor 一旦添加完成就把自己移除
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
@@ -152,7 +152,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                 }
 
                 ch.eventLoop().execute(() -> pipeline.addLast(new ServerBootstrapAcceptor(
-                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs)));
+                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs)));  // ServerBootstrapAcceptor handler负责客户端连接创建后 对连接的初始化工作
             }
         });
     }

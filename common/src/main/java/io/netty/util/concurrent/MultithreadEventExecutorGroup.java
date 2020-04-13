@@ -110,12 +110,9 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
 
         chooser = chooserFactory.newChooser(children);
 
-        final FutureListener<Object> terminationListener = new FutureListener<Object>() {
-            @Override
-            public void operationComplete(Future<Object> future) throws Exception {
-                if (terminatedChildren.incrementAndGet() == children.length) {
-                    terminationFuture.setSuccess(null);
-                }
+        final FutureListener<Object> terminationListener = future -> {
+            if (terminatedChildren.incrementAndGet() == children.length) {
+                terminationFuture.setSuccess(null);
             }
         };
 
@@ -123,7 +120,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             e.terminationFuture().addListener(terminationListener);
         }
 
-        Set<EventExecutor> childrenSet = new LinkedHashSet<EventExecutor>(children.length);
+        Set<EventExecutor> childrenSet = new LinkedHashSet<>(children.length);
         Collections.addAll(childrenSet, children);
         readonlyChildren = Collections.unmodifiableSet(childrenSet);
     }

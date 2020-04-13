@@ -550,6 +550,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private void processSelectedKeys() {
         if (selectedKeys != null) {
+            // 不适用JDK的selector.selectedKeys 性能优于1%~2% 垃圾回收更少
             processSelectedKeysOptimized();
         } else {
             processSelectedKeysPlain(selector.selectedKeys());
@@ -614,6 +615,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 轮询事件
+     */
     private void processSelectedKeysOptimized() {
         for (int i = 0; i < selectedKeys.size; ++i) {
             final SelectionKey k = selectedKeys.keys[i];
@@ -621,7 +625,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // See https://github.com/netty/netty/issues/2363
             selectedKeys.keys[i] = null;
 
-            final Object a = k.attachment();
+            final Object a = k.attachment();    // java.nio.channels.SelectableChannel.register(java.nio.channels.Selector, int, java.lang.Object)的最后一个参数 将ServerSocketChannel设置为attachment
 
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
@@ -687,7 +691,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
-            if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {
+            if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {   // 处理读事件/连接断开/连接接入事件
                 unsafe.read();
             }
         } catch (CancelledKeyException ignored) {

@@ -269,18 +269,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     }
 
     private ChannelFuture doBind(final SocketAddress localAddress) {
-        final ChannelFuture regFuture = initAndRegister();
+        final ChannelFuture regFuture = initAndRegister();  // 1.创建ServerSocketChannel 2.初始化ServerSocketChannel 3.将ServerSocketChannel注册到NioEventLoop的Selector上
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
             return regFuture;
         }
 
-        if (regFuture.isDone()) {
+        if (regFuture.isDone()) {   // register是一个异步过程 此处不一定完成注册
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
-        } else {
+        } else {    // 没有注册完成 将doBind0操作封装为一个task丢到Listener 待regFuture完成后进行通知Listener执行task
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
             regFuture.addListener((ChannelFutureListener) future -> {
@@ -349,14 +349,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
         // the pipeline in its channelRegistered() implementation.
-        channel.eventLoop().execute(new Runnable() {
-            @Override
-            public void run() {
-                if (regFuture.isSuccess()) {
-                    channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
-                } else {
-                    promise.setFailure(regFuture.cause());
-                }
+        channel.eventLoop().execute(() -> {
+            if (regFuture.isSuccess()) {
+                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+            } else {
+                promise.setFailure(regFuture.cause());
             }
         });
     }

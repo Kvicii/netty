@@ -468,12 +468,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 register0(promise);
             } else {
                 try {
-                    eventLoop.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            register0(promise);
-                        }
-                    });
+                    eventLoop.execute(() -> register0(promise));
                 } catch (Throwable t) {
                     logger.warn(
                             "Force-closing a channel whose registration task was not accepted by an event loop: {}",
@@ -505,8 +500,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
-                if (isActive()) {
-                    if (firstRegistration) {
+                if (isActive()) {   // server socket的注册不会进入到这个逻辑 socket接受连接创建可以进入 因为server socket的bind时没有连接 而此时的socket连接已经建立好
+                    if (firstRegistration) {    // 是否是首次注册
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
                         // This channel was registered before and autoRead() is set. This means we need to begin read
@@ -554,13 +549,8 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            if (!wasActive && isActive()) {
-                invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        pipeline.fireChannelActive();
-                    }
-                });
+            if (!wasActive && isActive()) { // 从非active转换为active再执行
+                invokeLater(() -> pipeline.fireChannelActive());
             }
 
             safeSetSuccess(promise);
@@ -806,27 +796,24 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             //
             // See:
             // https://github.com/netty/netty/issues/4435
-            invokeLater(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        doDeregister();
-                    } catch (Throwable t) {
-                        logger.warn("Unexpected exception occurred while deregistering a channel.", t);
-                    } finally {
-                        if (fireChannelInactive) {
-                            pipeline.fireChannelInactive();
-                        }
-                        // Some transports like local and AIO does not allow the deregistration of
-                        // an open channel.  Their doDeregister() calls close(). Consequently,
-                        // close() calls deregister() again - no need to fire channelUnregistered, so check
-                        // if it was registered.
-                        if (registered) {
-                            registered = false;
-                            pipeline.fireChannelUnregistered();
-                        }
-                        safeSetSuccess(promise);
+            invokeLater(() -> {
+                try {
+                    doDeregister();
+                } catch (Throwable t) {
+                    logger.warn("Unexpected exception occurred while deregistering a channel.", t);
+                } finally {
+                    if (fireChannelInactive) {
+                        pipeline.fireChannelInactive();
                     }
+                    // Some transports like local and AIO does not allow the deregistration of
+                    // an open channel.  Their doDeregister() calls close(). Consequently,
+                    // close() calls deregister() again - no need to fire channelUnregistered, so check
+                    // if it was registered.
+                    if (registered) {
+                        registered = false;
+                        pipeline.fireChannelUnregistered();
+                    }
+                    safeSetSuccess(promise);
                 }
             });
         }
@@ -842,12 +829,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             try {
                 doBeginRead();
             } catch (final Exception e) {
-                invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        pipeline.fireExceptionCaught(e);
-                    }
-                });
+                invokeLater(() -> pipeline.fireExceptionCaught(e));
                 close(voidPromise());
             }
         }
