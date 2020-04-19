@@ -126,10 +126,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                  SelectStrategy strategy, RejectedExecutionHandler rejectedExecutionHandler,
                  EventLoopTaskQueueFactory queueFactory) {
         super(parent, executor, false, newTaskQueue(queueFactory), newTaskQueue(queueFactory),
-                rejectedExecutionHandler);
+                rejectedExecutionHandler);  // 创建并且初始化了NioEventLoopGroup
         this.provider = ObjectUtil.checkNotNull(selectorProvider, "selectorProvider");
         this.selectStrategy = ObjectUtil.checkNotNull(strategy, "selectStrategy");
-        final SelectorTuple selectorTuple = openSelector();
+        final SelectorTuple selectorTuple = openSelector(); // 创建Selector
         this.selector = selectorTuple.selector;
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
     }
@@ -499,7 +499,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             try {
                 if (isShuttingDown()) {
                     closeAll();
-                    if (confirmShutdown()) {
+                    if (confirmShutdown()) {    // 优美关闭的关键
                         return;
                     }
                 }
@@ -567,9 +567,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     void cancel(SelectionKey key) {
-        key.cancel();
+        key.cancel();   // 无特殊情况(没有配置solinger) 这个cancel实际不会执行 因为在关闭channel的时候已经cancel过了
         cancelledKeys++;
-        if (cancelledKeys >= CLEANUP_INTERVAL) {
+        if (cancelledKeys >= CLEANUP_INTERVAL) {    // 当处理一批事件时 如果发现很多连接都断了(256个) 此时后面的事件可能都失效了 所有select again一下
             cancelledKeys = 0;
             needsToSelectAgain = true;
         }
@@ -686,13 +686,13 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             // Process OP_WRITE first as we may be able to write some queued buffers and so free memory.
             if ((readyOps & SelectionKey.OP_WRITE) != 0) {
                 // Call forceFlush which will also take care of clear the OP_WRITE once there is nothing left to write
-                ch.unsafe().forceFlush();
+                ch.unsafe().forceFlush();   // 注册一个OP_WRITE的执行实际上就是进行flush操作
             }
 
             // Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
             // to a spin loop
-            if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {   // 处理读事件/连接断开/连接接入事件
-                unsafe.read();
+            if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {   // 处理读事件/连接断开/连接接入事件--对于OP_ACCEPT和OP_READ都是一套逻辑只不过实现不同
+                unsafe.read();  // SocketChannel会执行AbstractNioMessageChannel(OP_READ) ServerSocketChannel会执行AbstractNioByteChannel(OP_ACCEPT)
             }
         } catch (CancelledKeyException ignored) {
             unsafe.close(unsafe.voidPromise());
@@ -724,9 +724,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     private void closeAll() {
-        selectAgain();
+        selectAgain();  // 去除canceled的SelectionKey
         Set<SelectionKey> keys = selector.keys();
-        Collection<AbstractNioChannel> channels = new ArrayList<AbstractNioChannel>(keys.size());
+        Collection<AbstractNioChannel> channels = new ArrayList<>(keys.size());
         for (SelectionKey k : keys) {
             Object a = k.attachment();
             if (a instanceof AbstractNioChannel) {
@@ -740,7 +740,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
 
         for (AbstractNioChannel ch : channels) {
-            ch.unsafe().close(ch.unsafe().voidPromise());
+            ch.unsafe().close(ch.unsafe().voidPromise());   // 循环关闭Channel
         }
     }
 

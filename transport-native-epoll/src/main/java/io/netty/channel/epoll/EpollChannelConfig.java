@@ -30,6 +30,8 @@ import java.util.Map;
 import static io.netty.channel.unix.Limits.SSIZE_MAX;
 
 public class EpollChannelConfig extends DefaultChannelConfig {
+
+    // 通过调整该值可以达到的效果 批量写数据时如果想写的都写进去了 接下来会尝试写更多
     private volatile long maxBytesPerGatheringWrite = SSIZE_MAX;
 
     EpollChannelConfig(AbstractEpollChannel channel) {
@@ -152,16 +154,16 @@ public class EpollChannelConfig extends DefaultChannelConfig {
 
         try {
             switch (mode) {
-            case EDGE_TRIGGERED:
-                checkChannelNotRegistered();
-                ((AbstractEpollChannel) channel).setFlag(Native.EPOLLET);
-                break;
-            case LEVEL_TRIGGERED:
-                checkChannelNotRegistered();
-                ((AbstractEpollChannel) channel).clearFlag(Native.EPOLLET);
-                break;
-            default:
-                throw new Error();
+                case EDGE_TRIGGERED:
+                    checkChannelNotRegistered();
+                    ((AbstractEpollChannel) channel).setFlag(Native.EPOLLET);
+                    break;
+                case LEVEL_TRIGGERED:
+                    checkChannelNotRegistered();
+                    ((AbstractEpollChannel) channel).clearFlag(Native.EPOLLET);
+                    break;
+                default:
+                    throw new Error();
             }
         } catch (IOException e) {
             throw new ChannelException(e);

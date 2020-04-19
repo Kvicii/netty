@@ -66,7 +66,7 @@ public final class EchoClient {
                                 p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
                             }
                             //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(new EchoClientHandler());
+//                            p.addLast(new EchoClientHandler());
                         }
                     });
 
@@ -74,7 +74,7 @@ public final class EchoClient {
             ChannelFuture f = b.connect(HOST, PORT).sync();
 
             // Wait until the connection is closed.
-            f.channel().closeFuture().sync();
+//            f.channel().closeFuture().sync();
         } finally {
             // Shut down the event loop to terminate all threads.
             group.shutdownGracefully();

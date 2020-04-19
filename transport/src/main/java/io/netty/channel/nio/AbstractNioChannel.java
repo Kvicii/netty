@@ -371,8 +371,11 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         boolean selected = false;
         for (; ; ) {
             try {
-                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 logger.info("register server socket channel to selector, ops:{}", 0);
+                // 将ServerSocketChannel绑定到当前EventLoop的Selector上
+                // ops = 0说明此时并未接收连接(还没有bind)
+                // EventLoop轮询Selector中的事件做处理 处理的时候拿着attachment去做处理
+                selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
                 if (!selected) {
@@ -404,7 +407,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
         readPending = true;
 
-        final int interestOps = selectionKey.interestOps(); // socket连接建立时参数readInterestOp的值为1 未接收数据做好了准备
+        final int interestOps = selectionKey.interestOps(); // socket连接建立时参数readInterestOp的值为1 为接收数据做好了准备
         if ((interestOps & readInterestOp) == 0) {  // 判断是否开启了readInterestOp 没有则监听readInterestOp
             logger.info("register OP_ACCEPT, readInterestOp:{}", readInterestOp);
             selectionKey.interestOps(interestOps | readInterestOp);

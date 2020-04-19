@@ -182,7 +182,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
  * | 0xCA | 0x0010 | 0xFE | "HELLO, WORLD" |      | 0xFE | "HELLO, WORLD" |
  * +------+--------+------+----------------+      +------+----------------+
  * </pre>
- * 固定长度字段 内容字段分别存储封装成帧(Framing)解码实现类 编码实现单独由 {@link LengthFieldPrepender} 实现
+ * 固定长度字段 内容字段分别存储封装成帧(Framing)解码实现类 解决粘包半包问题 编码实现单独由 {@link LengthFieldPrepender} 实现
  *
  * @see LengthFieldPrepender
  */

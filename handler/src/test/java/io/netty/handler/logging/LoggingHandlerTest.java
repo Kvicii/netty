@@ -113,7 +113,7 @@ public class LoggingHandlerTest {
     }
 
     @Test
-    public void shouldLogChannelWritabilityChanged() throws Exception {
+    public void shouldLogChannelWritabilityChanged() {
         EmbeddedChannel channel = new EmbeddedChannel(new LoggingHandler());
         // this is used to switch the channel to become unwritable
         channel.config().setWriteBufferLowWaterMark(5);

@@ -95,7 +95,7 @@ public abstract class DefaultMaxMessagesRecvByteBufAllocator implements MaxMessa
         private final UncheckedBooleanSupplier defaultMaybeMoreSupplier = new UncheckedBooleanSupplier() {
             @Override
             public boolean get() {
-                return attemptedBytesRead == lastBytesRead;
+                return attemptedBytesRead == lastBytesRead; // 当前读取的数据是否达到了分配的空间大小
             }
         };
 

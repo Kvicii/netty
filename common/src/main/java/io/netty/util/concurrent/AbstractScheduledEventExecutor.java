@@ -31,17 +31,10 @@ import static io.netty.util.concurrent.ScheduledFutureTask.deadlineNanos;
  */
 public abstract class AbstractScheduledEventExecutor extends AbstractEventExecutor {
     private static final Comparator<ScheduledFutureTask<?>> SCHEDULED_FUTURE_TASK_COMPARATOR =
-            new Comparator<ScheduledFutureTask<?>>() {
-                @Override
-                public int compare(ScheduledFutureTask<?> o1, ScheduledFutureTask<?> o2) {
-                    return o1.compareTo(o2);
-                }
-            };
+            ScheduledFutureTask::compareTo;
 
-    static final Runnable WAKEUP_TASK = new Runnable() {
-        @Override
-        public void run() {
-        } // Do nothing
+    // Do nothing
+    static final Runnable WAKEUP_TASK = () -> {
     };
 
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;

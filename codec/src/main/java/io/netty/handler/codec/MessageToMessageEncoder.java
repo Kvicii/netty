@@ -30,7 +30,7 @@ import java.util.List;
 
 /**
  * {@link ChannelOutboundHandlerAdapter} which encodes from one message to an other message
- *
+ * <p>
  * For example here is an implementation which decodes an {@link Integer} to an {@link String}.
  *
  * <pre>
@@ -44,7 +44,7 @@ import java.util.List;
  *         }
  *     }
  * </pre>
- *
+ * <p>
  * Be aware that you need to call {@link ReferenceCounted#retain()} on messages that are just passed through if they
  * are of type {@link ReferenceCounted}. This is needed as the {@link MessageToMessageEncoder} will call
  * {@link ReferenceCounted#release()} on encoded messages.
@@ -63,7 +63,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     /**
      * Create a new instance
      *
-     * @param outboundMessageType   The type of messages to match and so encode
+     * @param outboundMessageType The type of messages to match and so encode
      */
     protected MessageToMessageEncoder(Class<? extends I> outboundMessageType) {
         matcher = TypeParameterMatcher.get(outboundMessageType);
@@ -81,7 +81,7 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         CodecOutputList out = null;
         try {
-            if (acceptOutboundMessage(msg)) {
+            if (acceptOutboundMessage(msg)) {   // 判断给定的类型是否和当前Encoder的泛型一致 不一致跳过该handler不处理
                 out = CodecOutputList.newInstance();
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
@@ -143,11 +143,11 @@ public abstract class MessageToMessageEncoder<I> extends ChannelOutboundHandlerA
      * Encode from one message to an other. This method will be called for each written message that can be handled
      * by this encoder.
      *
-     * @param ctx           the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder} belongs to
-     * @param msg           the message to encode to an other one
-     * @param out           the {@link List} into which the encoded msg should be added
-     *                      needs to do some kind of aggregation
-     * @throws Exception    is thrown if an error occurs
+     * @param ctx the {@link ChannelHandlerContext} which this {@link MessageToMessageEncoder} belongs to
+     * @param msg the message to encode to an other one
+     * @param out the {@link List} into which the encoded msg should be added
+     *            needs to do some kind of aggregation
+     * @throws Exception is thrown if an error occurs
      */
     protected abstract void encode(ChannelHandlerContext ctx, I msg, List<Object> out) throws Exception;
 }

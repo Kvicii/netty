@@ -153,9 +153,16 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      */
     protected abstract EventExecutor newChild(Executor executor, Object... args) throws Exception;
 
+    /**
+     * @param quietPeriod 静默期 the quiet period as described in the documentation
+     * @param timeout     最大优美关闭时间 the maximum amount of time to wait until the executor is {@linkplain #shutdown()}
+     *                    regardless if a task was submitted during the quiet period
+     * @param unit        the unit of {@code quietPeriod} and {@code timeout}
+     * @return
+     */
     @Override
     public Future<?> shutdownGracefully(long quietPeriod, long timeout, TimeUnit unit) {
-        for (EventExecutor l : children) {
+        for (EventExecutor l : children) {  // 循坏关闭多个NioEventLoop
             l.shutdownGracefully(quietPeriod, timeout, unit);
         }
         return terminationFuture();

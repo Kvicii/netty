@@ -44,7 +44,7 @@ public final class WriteBufferWaterMark {
     /**
      * Create a new instance.
      *
-     * @param low low water mark for write buffer.
+     * @param low  low water mark for write buffer.
      * @param high high water mark for write buffer
      */
     public WriteBufferWaterMark(int low, int high) {
@@ -70,6 +70,7 @@ public final class WriteBufferWaterMark {
 
     /**
      * Returns the low water mark for the write buffer.
+     * 写完一个数据后 会将待写的数据减少size 低于一定的水位线时 就将write恢复
      */
     public int low() {
         return low;
@@ -77,6 +78,7 @@ public final class WriteBufferWaterMark {
 
     /**
      * Returns the high water mark for the write buffer.
+     * 写数据太多时 超过一定的水位线 会将可写标志位改为false 让应用端自己决定要不要继续发送数据
      */
     public int high() {
         return high;
@@ -85,11 +87,11 @@ public final class WriteBufferWaterMark {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(55)
-            .append("WriteBufferWaterMark(low: ")
-            .append(low)
-            .append(", high: ")
-            .append(high)
-            .append(")");
+                .append("WriteBufferWaterMark(low: ")
+                .append(low)
+                .append(", high: ")
+                .append(high)
+                .append(")");
         return builder.toString();
     }
 

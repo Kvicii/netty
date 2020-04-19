@@ -54,7 +54,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             new FastThreadLocal<Map<Class<?>, String>>() {
         @Override
         protected Map<Class<?>, String> initialValue() {
-            return new WeakHashMap<Class<?>, String>();
+            return new WeakHashMap<>();
         }
     };
 
@@ -131,7 +131,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         Map<EventExecutorGroup, EventExecutor> childExecutors = this.childExecutors;
         if (childExecutors == null) {
             // Use size of 4 as most people only use one extra EventExecutor.
-            childExecutors = this.childExecutors = new IdentityHashMap<EventExecutorGroup, EventExecutor>(4);
+            childExecutors = this.childExecutors = new IdentityHashMap<>(4);
         }
         // Pin one of the child executors once and remember it so that the same child executor
         // is used to fire events for the same channel.
@@ -916,7 +916,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline fireChannelRead(Object msg) {
-        AbstractChannelHandlerContext.invokeChannelRead(head, msg);
+        AbstractChannelHandlerContext.invokeChannelRead(head, msg); // 从头开始执行符合条件的handler(1.实现io.netty.channel.ChannelInboundHandler.channelRead方法 2.channelRead方法没有添加@Skip注解)
         return this;
     }
 

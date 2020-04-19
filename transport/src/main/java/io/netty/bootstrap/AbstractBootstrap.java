@@ -304,8 +304,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
-            channel = channelFactory.newChannel();
-            init(channel);
+            channel = channelFactory.newChannel();  // 1.channelFactory是在NioEventLoopGroup创建的时候创建的 2.创建一个ServerSocketChannel
+            init(channel);  // 初始化ServerSocketChannel
         } catch (Throwable t) {
             if (channel != null) {
                 // channel can be null if newChannel crashed (eg SocketException("too many open files"))

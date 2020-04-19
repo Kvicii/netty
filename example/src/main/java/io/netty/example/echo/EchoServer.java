@@ -70,7 +70,7 @@ public final class EchoServer {
                     // 选择堆外/堆外内存的内存池实现--方式一
                     // 设置io.netty.type参数--方式二
                     .childOption(ChannelOption.ALLOCATOR, new PooledByteBufAllocator(false))
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
+                    .childHandler(new ChannelInitializer<SocketChannel>() { // 初始化channelPipeline
                         @Override
                         public void initChannel(SocketChannel ch) {
                             ChannelPipeline p = ch.pipeline();
@@ -78,15 +78,15 @@ public final class EchoServer {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
                             //p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(serverHandler);
+                            p.addLast(serverHandler);   // 将channelHandler添加到责任链 在请求或响应时都会经过链上的channelHandler处理
                         }
                     });
 
             // Start the server.
-            ChannelFuture f = b.bind(PORT).sync();
+            ChannelFuture f = b.bind(PORT).sync();  // 阻塞当前Thread 一直到端口绑定完成
 
             // Wait until the server socket is closed.
-            f.channel().closeFuture().sync();
+//            f.channel().closeFuture().sync();   // 应用程序会阻塞等待直到服务器关闭
         } finally {
             // Shut down all event loops to terminate all threads.
             bossGroup.shutdownGracefully();

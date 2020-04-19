@@ -62,6 +62,7 @@ public class DefaultChannelConfig implements ChannelConfig {
     private volatile MessageSizeEstimator msgSizeEstimator = DEFAULT_MSG_SIZE_ESTIMATOR;
 
     private volatile int connectTimeoutMillis = DEFAULT_CONNECT_TIMEOUT;
+    // 只要有数据写且能写的出去 就一直尝试 直到写不出去或者满16次
     private volatile int writeSpinCount = 16;
     @SuppressWarnings("FieldMayBeFinal")
     private volatile int autoRead = 1;
@@ -92,7 +93,7 @@ public class DefaultChannelConfig implements ChannelConfig {
     protected Map<ChannelOption<?>, Object> getOptions(
             Map<ChannelOption<?>, Object> result, ChannelOption<?>... options) {
         if (result == null) {
-            result = new IdentityHashMap<ChannelOption<?>, Object>();
+            result = new IdentityHashMap<>();
         }
         for (ChannelOption<?> o : options) {
             result.put(o, getOption(o));

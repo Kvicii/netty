@@ -50,6 +50,8 @@ import static java.lang.Math.min;
  * <li>{@link #getUserDefinedWritability(int)} and {@link #setUserDefinedWritability(int, boolean)}</li>
  * </ul>
  * </p>
+ * write(写数据到buffer)和flush(将buffer的数据发送出去)之间的类实现
+ * writeAndFlush(写入buffer并直接发送)
  */
 public final class ChannelOutboundBuffer {
     // Assuming a 64-bit JVM:
@@ -115,6 +117,7 @@ public final class ChannelOutboundBuffer {
      * the message was written.
      */
     public void addMessage(Object msg, int size, ChannelPromise promise) {
+        // 追加到队尾
         Entry entry = Entry.newInstance(msg, size, total(msg), promise);
         if (tailEntry == null) {
             flushedEntry = null;
@@ -175,6 +178,7 @@ public final class ChannelOutboundBuffer {
             return;
         }
 
+        // 判断待发送数据的size是否高于高水位线 超过了状态改为不可写 用客户端做判断
         long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
         if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
             setUnwritable(invokeLater);
@@ -348,13 +352,15 @@ public final class ChannelOutboundBuffer {
             final int readerIndex = buf.readerIndex();
             final int readableBytes = buf.writerIndex() - readerIndex;
 
-            if (readableBytes <= writtenBytes) {
+            // 根据msg的大小和已经写出去的数据的大小判断
+            if (readableBytes <= writtenBytes) {    // 已经写出去了就remove
                 if (writtenBytes != 0) {
                     progress(readableBytes);
                     writtenBytes -= readableBytes;
                 }
                 remove();
             } else { // readableBytes > writtenBytes
+                // 没有写出去标记progress进度
                 if (writtenBytes != 0) {
                     buf.readerIndex(readerIndex + (int) writtenBytes);
                     progress(writtenBytes);
@@ -673,12 +679,7 @@ public final class ChannelOutboundBuffer {
 
     void close(final Throwable cause, final boolean allowChannelOpen) {
         if (inFail) {
-            channel.eventLoop().execute(new Runnable() {
-                @Override
-                public void run() {
-                    close(cause, allowChannelOpen);
-                }
-            });
+            channel.eventLoop().execute(() -> close(cause, allowChannelOpen));
             return;
         }
 
