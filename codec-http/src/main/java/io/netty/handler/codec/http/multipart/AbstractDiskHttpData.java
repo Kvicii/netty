@@ -124,8 +124,8 @@ public abstract class AbstractDiskHttpData extends AbstractHttpData {
                 return;
             }
             RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
-            accessFile.setLength(0);
             try {
+                accessFile.setLength(0);
                 FileChannel localfileChannel = accessFile.getChannel();
                 ByteBuffer byteBuffer = buffer.nioBuffer();
                 int written = 0;
@@ -198,12 +198,13 @@ public abstract class AbstractDiskHttpData extends AbstractHttpData {
 
     @Override
     public void setContent(File file) throws IOException {
+        long size = file.length();
+        checkSize(size);
+        this.size = size;
         if (this.file != null) {
             delete();
         }
         this.file = file;
-        size = file.length();
-        checkSize(size);
         isRenamed = true;
         setCompleted();
     }
@@ -216,9 +217,9 @@ public abstract class AbstractDiskHttpData extends AbstractHttpData {
         }
         file = tempFile();
         RandomAccessFile accessFile = new RandomAccessFile(file, "rw");
-        accessFile.setLength(0);
         int written = 0;
         try {
+            accessFile.setLength(0);
             FileChannel localfileChannel = accessFile.getChannel();
             byte[] bytes = new byte[4096 * 4];
             ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
@@ -250,9 +251,14 @@ public abstract class AbstractDiskHttpData extends AbstractHttpData {
         if (fileChannel != null) {
             try {
                 fileChannel.force(false);
-                fileChannel.close();
             } catch (IOException e) {
-                logger.warn("Failed to close a file.", e);
+                logger.warn("Failed to force.", e);
+            } finally {
+                try {
+                    fileChannel.close();
+                } catch (IOException e) {
+                    logger.warn("Failed to close a file.", e);
+                }
             }
             fileChannel = null;
         }
