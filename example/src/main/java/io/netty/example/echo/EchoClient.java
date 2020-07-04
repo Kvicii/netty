@@ -67,11 +67,13 @@ public final class EchoClient {
                             }
                             //p.addLast(new LoggingHandler(LogLevel.INFO));
 //                            p.addLast(new EchoClientHandler());
+                            p.addLast(new NettyClientHandler());
                         }
                     });
 
             // Start the client.
-            ChannelFuture f = b.connect(HOST, PORT).sync();
+            ChannelFuture f = b.connect(HOST, PORT).sync(); // 异步等待连接建立
+
 
             // Wait until the connection is closed.
 //            f.channel().closeFuture().sync();

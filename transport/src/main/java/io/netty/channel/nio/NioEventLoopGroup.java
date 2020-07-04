@@ -39,6 +39,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Create a new instance using the default number of threads, the default {@link ThreadFactory} and
      * the {@link SelectorProvider} which is returned by {@link SelectorProvider#provider()}.
+     * 不显示指定线程数 系统默认会使用当前服务器CPU数量 * 2的值作为线程数 从而启用sub reactor
      */
     public NioEventLoopGroup() {
         this(0);
@@ -47,6 +48,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
     /**
      * Create a new instance using the specified number of threads, {@link ThreadFactory} and the
      * {@link SelectorProvider} which is returned by {@link SelectorProvider#provider()}.
+     * 指定nThreads个线程作为sub reactor(EventLoop)
      */
     public NioEventLoopGroup(int nThreads) {
         this(nThreads, (Executor) null);

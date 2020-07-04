@@ -67,6 +67,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     /**
      * Specify the {@link EventLoopGroup} which is used for the parent (acceptor) and the child (client).
+     * 只指定一个reactor 弊端是新连接的接受很可能会受到更加耗时的数据传输或处理业务的阻塞
      */
     @Override
     public ServerBootstrap group(EventLoopGroup group) {
@@ -77,6 +78,9 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * Set the {@link EventLoopGroup} for the parent (acceptor) and the child (client). These
      * {@link EventLoopGroup}'s are used to handle all the events and IO for {@link ServerChannel} and
      * {@link Channel}'s.
+     * 常规使用的group 接收reactor 及 sub reactor
+     * 其中reactor用于新连接的监听和接受 sub reactor用于IO事件的处理
+     * 在服务器端建议设置两个线程组
      */
     public ServerBootstrap group(EventLoopGroup parentGroup, EventLoopGroup childGroup) {
         super.group(parentGroup);
@@ -91,6 +95,7 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
      * Allow to specify a {@link ChannelOption} which is used for the {@link Channel} instances once they get created
      * (after the acceptor accepted the {@link Channel}). Use a value of {@code null} to remove a previous set
      * {@link ChannelOption}.
+     * 用于给子通道 {@link io.netty.channel.socket.nio.NioSocketChannel} 设置一些通道选项
      */
     public <T> ServerBootstrap childOption(ChannelOption<T> childOption, T value) {
         ObjectUtil.checkNotNull(childOption, "childOption");

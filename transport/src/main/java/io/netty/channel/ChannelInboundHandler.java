@@ -18,6 +18,10 @@ package io.netty.channel;
 /**
  * {@link ChannelHandler} which adds callbacks for state changes. This allows the user
  * to hook in to state changes easily.
+ * 入站处理器
+ *
+ * 以OP_READ事件为例: 在Channel中发生OP_READ事件后 会被EventLoop查询到 然后分发给ChannelInboundHandler入站处理 调用其read方法从通道中读取数据
+ * 入站处理方向: Channel -> ChannelInboundHandler
  */
 public interface ChannelInboundHandler extends ChannelHandler {
 
