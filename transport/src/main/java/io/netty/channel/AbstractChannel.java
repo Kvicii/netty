@@ -44,9 +44,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannel.class);
 
+    // 父通道  对于NioServerSocketChannel而言 其父通道为null    而对于实际处理IO操作的NioSocketChannel而言 父通道为接收到该连接的NioServerSocketChannel
     private final Channel parent;
     private final ChannelId id;
-    private final Unsafe unsafe;
+    private final Unsafe unsafe;    // 用于完成实际的IO操作
     // 每个Channel中都含有一个pipeline 用于关联多个Handler
     private final DefaultChannelPipeline pipeline;
     private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
@@ -208,11 +209,23 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return registered;
     }
 
+    /**
+     * 绑定监听地址 开始监听新的客户端连接
+     *
+     * @param localAddress
+     * @return
+     */
     @Override
     public ChannelFuture bind(SocketAddress localAddress) {
         return pipeline.bind(localAddress);
     }
 
+    /**
+     * 连接远程服务器 此方法在客户端的传输通道使用
+     *
+     * @param remoteAddress
+     * @return
+     */
     @Override
     public ChannelFuture connect(SocketAddress remoteAddress) {
         return pipeline.connect(remoteAddress);
@@ -228,6 +241,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.disconnect();
     }
 
+    /**
+     * 关闭连接通道
+     * 如果需要在连接正式关闭后执行其他操作 则需要为异步任务设置回调方法 或者调用ChannelFuture异步任务的sync方法来阻塞当前线程 一直等到通道关闭的异步任务执行完毕
+     *
+     * @return
+     */
     @Override
     public ChannelFuture close() {
         return pipeline.close();
@@ -238,6 +257,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.deregister();
     }
 
+    /**
+     * 将缓冲区的数据立即写出到对端 并不是每次的write操作都是将数据直接写出到对端
+     * write操作的作用大部分情况下仅仅是写入到操作系统的page cache 操作系统会根据缓冲区的情况决定何时写到对端
+     *
+     * @return
+     */
     @Override
     public Channel flush() {
         pipeline.flush();
@@ -274,12 +299,24 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         return pipeline.deregister(promise);
     }
 
+    /**
+     * 读取通道的数据 启动入站处理
+     * 从Nio Channel读取数据 启动内部的pipeline 开始数据读取的入站处理 返回通道自身用于链式调用
+     *
+     * @return
+     */
     @Override
     public Channel read() {
         pipeline.read();
         return this;
     }
 
+    /**
+     * 启动出战流水线处理 把处理后的最终数据写到Nio Channel
+     *
+     * @param msg
+     * @return
+     */
     @Override
     public ChannelFuture write(Object msg) {
         return pipeline.write(msg);
