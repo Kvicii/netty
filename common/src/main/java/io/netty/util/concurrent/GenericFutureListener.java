@@ -20,13 +20,15 @@ import java.util.EventListener;
 /**
  * Listens to the result of a {@link Future}.  The result of the asynchronous operation is notified once this listener
  * is added by calling {@link Future#addListener(GenericFutureListener)}.
+ * netty使用了监听器模式 可以将该接口加入到netty的异步任务Future中实现对异步任务执行状态的事件监听
  */
 public interface GenericFutureListener<F extends Future<?>> extends EventListener {
 
     /**
      * Invoked when the operation associated with the {@link Future} has been completed.
+     * 异步任务执行完成后 回调该方法
      *
-     * @param future  the source {@link Future} which called this callback
+     * @param future the source {@link Future} which called this callback
      */
     void operationComplete(F future) throws Exception;
 }

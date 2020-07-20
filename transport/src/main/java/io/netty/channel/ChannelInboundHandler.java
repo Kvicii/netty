@@ -18,11 +18,16 @@ package io.netty.channel;
 /**
  * {@link ChannelHandler} which adds callbacks for state changes. This allows the user
  * to hook in to state changes easily.
+ * 入站处理器
+ *
+ * 以OP_READ事件为例: 在Channel中发生OP_READ事件后 会被EventLoop查询到 然后分发给ChannelInboundHandler入站处理 调用其read方法从通道中读取数据
+ * 入站处理方向: Channel -> ChannelInboundHandler
  */
 public interface ChannelInboundHandler extends ChannelHandler {
 
     /**
      * The {@link Channel} of the {@link ChannelHandlerContext} was registered with its {@link EventLoop}
+     * 当通道注册完成后 会调用fireChannelRegistered触发通道注册事件 通道会启动该入站操作的pipeline处理 在通道注册过的入站处理器handler的channelRegistered方法会被调用到
      */
     void channelRegistered(ChannelHandlerContext ctx) throws Exception;
 
@@ -33,17 +38,20 @@ public interface ChannelInboundHandler extends ChannelHandler {
 
     /**
      * The {@link Channel} of the {@link ChannelHandlerContext} is now active
+     * 当通道激活完成后 调用fireChannelActive触发通道激活事件 通道会将该入站操作的pipeline处理 在通道注册过的入站处理器的handler的channelActive方法会被调用到
      */
     void channelActive(ChannelHandlerContext ctx) throws Exception;
 
     /**
      * The {@link Channel} of the {@link ChannelHandlerContext} was registered is now inactive and reached its
      * end of lifetime.
+     * 当连接被断开或者不可用 调用fireChannelInactive触发连接不可用事件 通道会启动对应的pipeline处理 在通道注册过的入站处理器handler的channelInactive方法会被调用到
      */
     void channelInactive(ChannelHandlerContext ctx) throws Exception;
 
     /**
      * Invoked when the current {@link Channel} has read a message from the peer.
+     * 当通道缓冲区可读 调用fireChannelRead触发通道可读事件 通道会启动该入站操作的pipeline处理 在通道注册过的入站处理器的handler的channelRead方法会被调用到
      */
     void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception;
 
@@ -52,6 +60,7 @@ public interface ChannelInboundHandler extends ChannelHandler {
      * {@link #channelRead(ChannelHandlerContext, Object)}.  If {@link ChannelOption#AUTO_READ} is off, no further
      * attempt to read an inbound data from the current {@link Channel} will be made until
      * {@link ChannelHandlerContext#read()} is called.
+     * 当通道缓冲区读完 调用fireChannelReadComplete触发通道读完事件 通道会启动该入站操作的pipeline处理 在通道注册过的入站处理器handler的channelReadComplete方法会被调用到
      */
     void channelReadComplete(ChannelHandlerContext ctx) throws Exception;
 
@@ -68,6 +77,8 @@ public interface ChannelInboundHandler extends ChannelHandler {
 
     /**
      * Gets called if a {@link Throwable} was thrown.
+     * 当通道处理过程发生异常时 调用fireExceptionCaught触发异常捕获事件 通道会启动异常捕获的pipeline处理 在通道注册过的处理器handler的exceptionCaught方法会被调用到
+     * 该方法是在通道管理器中ChannelHandler定义的方法 入站处理器 出站处理器接口都继承到了该方法
      */
     @Override
     @SuppressWarnings("deprecation")

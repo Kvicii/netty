@@ -15,11 +15,6 @@
  */
 package io.netty.channel.embedded;
 
-import java.net.SocketAddress;
-import java.nio.channels.ClosedChannelException;
-import java.util.ArrayDeque;
-import java.util.Queue;
-
 import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
@@ -44,8 +39,14 @@ import io.netty.util.internal.RecyclableArrayList;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
+import java.net.SocketAddress;
+import java.nio.channels.ClosedChannelException;
+import java.util.ArrayDeque;
+import java.util.Queue;
+
 /**
  * Base class for {@link Channel} implementations that are used in an embedded fashion.
+ * 模拟入站与出站操作 不进行实际的IO传输操作 不需要启动服务端和客户端 其他的特点和真正的传输通道是一致的
  */
 public class EmbeddedChannel extends AbstractChannel {
 
@@ -53,7 +54,8 @@ public class EmbeddedChannel extends AbstractChannel {
     private static final SocketAddress REMOTE_ADDRESS = new EmbeddedSocketAddress();
 
     private static final ChannelHandler[] EMPTY_HANDLERS = new ChannelHandler[0];
-    private enum State { OPEN, ACTIVE, CLOSED }
+
+    private enum State {OPEN, ACTIVE, CLOSED}
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(EmbeddedChannel.class);
 
@@ -106,7 +108,7 @@ public class EmbeddedChannel extends AbstractChannel {
      *
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(boolean hasDisconnect, ChannelHandler... handlers) {
         this(EmbeddedChannelId.INSTANCE, hasDisconnect, handlers);
@@ -115,11 +117,11 @@ public class EmbeddedChannel extends AbstractChannel {
     /**
      * Create a new instance with the pipeline initialized with the specified handlers.
      *
-     * @param register {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
-     *                 constructor. If {@code false} the user will need to call {@link #register()}.
+     * @param register      {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
+     *                      constructor. If {@code false} the user will need to call {@link #register()}.
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(boolean register, boolean hasDisconnect, ChannelHandler... handlers) {
         this(EmbeddedChannelId.INSTANCE, register, hasDisconnect, handlers);
@@ -130,7 +132,7 @@ public class EmbeddedChannel extends AbstractChannel {
      * initialized with the specified handlers.
      *
      * @param channelId the {@link ChannelId} that will be used to identify this channel
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers  the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(ChannelId channelId, ChannelHandler... handlers) {
         this(channelId, false, handlers);
@@ -140,10 +142,10 @@ public class EmbeddedChannel extends AbstractChannel {
      * Create a new instance with the channel ID set to the given ID and the pipeline
      * initialized with the specified handlers.
      *
-     * @param channelId the {@link ChannelId} that will be used to identify this channel
+     * @param channelId     the {@link ChannelId} that will be used to identify this channel
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(ChannelId channelId, boolean hasDisconnect, ChannelHandler... handlers) {
         this(channelId, true, hasDisconnect, handlers);
@@ -153,12 +155,12 @@ public class EmbeddedChannel extends AbstractChannel {
      * Create a new instance with the channel ID set to the given ID and the pipeline
      * initialized with the specified handlers.
      *
-     * @param channelId the {@link ChannelId} that will be used to identify this channel
-     * @param register {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
-     *                 constructor. If {@code false} the user will need to call {@link #register()}.
+     * @param channelId     the {@link ChannelId} that will be used to identify this channel
+     * @param register      {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
+     *                      constructor. If {@code false} the user will need to call {@link #register()}.
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(ChannelId channelId, boolean register, boolean hasDisconnect,
                            ChannelHandler... handlers) {
@@ -169,13 +171,13 @@ public class EmbeddedChannel extends AbstractChannel {
      * Create a new instance with the channel ID set to the given ID and the pipeline
      * initialized with the specified handlers.
      *
-     * @param parent    the parent {@link Channel} of this {@link EmbeddedChannel}.
-     * @param channelId the {@link ChannelId} that will be used to identify this channel
-     * @param register {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
-     *                 constructor. If {@code false} the user will need to call {@link #register()}.
+     * @param parent        the parent {@link Channel} of this {@link EmbeddedChannel}.
+     * @param channelId     the {@link ChannelId} that will be used to identify this channel
+     * @param register      {@code true} if this {@link Channel} is registered to the {@link EventLoop} in the
+     *                      constructor. If {@code false} the user will need to call {@link #register()}.
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(Channel parent, ChannelId channelId, boolean register, boolean hasDisconnect,
                            final ChannelHandler... handlers) {
@@ -189,11 +191,11 @@ public class EmbeddedChannel extends AbstractChannel {
      * Create a new instance with the channel ID set to the given ID and the pipeline
      * initialized with the specified handlers.
      *
-     * @param channelId the {@link ChannelId} that will be used to identify this channel
+     * @param channelId     the {@link ChannelId} that will be used to identify this channel
      * @param hasDisconnect {@code false} if this {@link Channel} will delegate {@link #disconnect()}
      *                      to {@link #close()}, {@link false} otherwise.
-     * @param config the {@link ChannelConfig} which will be returned by {@link #config()}.
-     * @param handlers the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
+     * @param config        the {@link ChannelConfig} which will be returned by {@link #config()}.
+     * @param handlers      the {@link ChannelHandler}s which will be add in the {@link ChannelPipeline}
      */
     public EmbeddedChannel(ChannelId channelId, boolean hasDisconnect, final ChannelConfig config,
                            final ChannelHandler... handlers) {
@@ -214,7 +216,7 @@ public class EmbeddedChannel extends AbstractChannel {
             @Override
             protected void initChannel(Channel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
-                for (ChannelHandler h: handlers) {
+                for (ChannelHandler h : handlers) {
                     if (h == null) {
                         break;
                     }
@@ -303,6 +305,7 @@ public class EmbeddedChannel extends AbstractChannel {
 
     /**
      * Return received data from this {@link Channel}
+     * 读取入站数据 返回经过pipeline的最后一个入站处理器处理完成之后的入站数据 如果没有数据返回null
      */
     @SuppressWarnings("unchecked")
     public <T> T readInbound() {
@@ -315,10 +318,11 @@ public class EmbeddedChannel extends AbstractChannel {
 
     /**
      * Read data from the outbound. This may return {@code null} if nothing is readable.
+     * 读取出站数据 返回经过pipeline最后一个出站处理器处理后的出站数据 如果没有数据返回null
      */
     @SuppressWarnings("unchecked")
     public <T> T readOutbound() {
-        T message =  (T) poll(outboundMessages);
+        T message = (T) poll(outboundMessages);
         if (message != null) {
             ReferenceCountUtil.touch(message, "Caller of readOutbound() will handle the message from this point.");
         }
@@ -327,9 +331,9 @@ public class EmbeddedChannel extends AbstractChannel {
 
     /**
      * Write messages to the inbound of this {@link Channel}.
+     * 模拟通道收到数据 写入的数据会被pipeline上的入站handler处理
      *
      * @param msgs the messages to be written
-     *
      * @return {@code true} if the write operation did add something to the inbound buffer
      */
     public boolean writeInbound(Object... msgs) {
@@ -339,7 +343,7 @@ public class EmbeddedChannel extends AbstractChannel {
         }
 
         ChannelPipeline p = pipeline();
-        for (Object m: msgs) {
+        for (Object m : msgs) {
             p.fireChannelRead(m);
         }
 
@@ -350,6 +354,7 @@ public class EmbeddedChannel extends AbstractChannel {
     /**
      * Writes one message to the inbound of this {@link Channel} and does not flush it. This
      * method is conceptually equivalent to {@link #write(Object)}.
+     * 向通道写入出站数据 模拟通道发送数据 写入的数据会被流水线上的出站handler处理
      *
      * @see #writeOneOutbound(Object)
      */
@@ -381,18 +386,18 @@ public class EmbeddedChannel extends AbstractChannel {
     }
 
     private ChannelFuture flushInbound(boolean recordException, ChannelPromise promise) {
-      if (checkOpen(recordException)) {
-          pipeline().fireChannelReadComplete();
-          runPendingTasks();
-      }
+        if (checkOpen(recordException)) {
+            pipeline().fireChannelReadComplete();
+            runPendingTasks();
+        }
 
-      return checkException(promise);
+        return checkException(promise);
     }
 
     /**
      * Write messages to the outbound of this {@link Channel}.
      *
-     * @param msgs              the messages to be written
+     * @param msgs the messages to be written
      * @return bufferReadable   returns {@code true} if the write operation did add something to the outbound buffer
      */
     public boolean writeOutbound(Object... msgs) {
@@ -403,7 +408,7 @@ public class EmbeddedChannel extends AbstractChannel {
 
         RecyclableArrayList futures = RecyclableArrayList.newInstance(msgs.length);
         try {
-            for (Object m: msgs) {
+            for (Object m : msgs) {
                 if (m == null) {
                     break;
                 }
@@ -476,6 +481,7 @@ public class EmbeddedChannel extends AbstractChannel {
 
     /**
      * Mark this {@link Channel} as finished. Any further try to write data to it will fail.
+     * 调用通道的close方法
      *
      * @return bufferReadable returns {@code true} if any of the used buffers has something left to read
      */
@@ -530,7 +536,7 @@ public class EmbeddedChannel extends AbstractChannel {
 
     private static boolean releaseAll(Queue<Object> queue) {
         if (isNotEmpty(queue)) {
-            for (;;) {
+            for (; ; ) {
                 Object msg = queue.poll();
                 if (msg == null) {
                     break;
@@ -639,25 +645,25 @@ public class EmbeddedChannel extends AbstractChannel {
      * Checks for the presence of an {@link Exception}.
      */
     private ChannelFuture checkException(ChannelPromise promise) {
-      Throwable t = lastException;
-      if (t != null) {
-        lastException = null;
+        Throwable t = lastException;
+        if (t != null) {
+            lastException = null;
 
-        if (promise.isVoid()) {
-            PlatformDependent.throwException(t);
+            if (promise.isVoid()) {
+                PlatformDependent.throwException(t);
+            }
+
+            return promise.setFailure(t);
         }
 
-        return promise.setFailure(t);
-      }
-
-      return promise.setSuccess();
+        return promise.setSuccess();
     }
 
     /**
      * Check if there was any {@link Throwable} received and if so rethrow it.
      */
     public void checkException() {
-      checkException(voidPromise());
+        checkException(voidPromise());
     }
 
     /**
@@ -666,13 +672,13 @@ public class EmbeddedChannel extends AbstractChannel {
      */
     private boolean checkOpen(boolean recordException) {
         if (!isOpen()) {
-          if (recordException) {
-              recordException(new ClosedChannelException());
-          }
-          return false;
-      }
+            if (recordException) {
+                recordException(new ClosedChannelException());
+            }
+            return false;
+        }
 
-      return true;
+        return true;
     }
 
     /**
@@ -691,12 +697,12 @@ public class EmbeddedChannel extends AbstractChannel {
 
     @Override
     protected SocketAddress localAddress0() {
-        return isActive()? LOCAL_ADDRESS : null;
+        return isActive() ? LOCAL_ADDRESS : null;
     }
 
     @Override
     protected SocketAddress remoteAddress0() {
-        return isActive()? REMOTE_ADDRESS : null;
+        return isActive() ? REMOTE_ADDRESS : null;
     }
 
     @Override
@@ -738,7 +744,7 @@ public class EmbeddedChannel extends AbstractChannel {
 
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
-        for (;;) {
+        for (; ; ) {
             Object msg = in.current();
             if (msg == null) {
                 break;

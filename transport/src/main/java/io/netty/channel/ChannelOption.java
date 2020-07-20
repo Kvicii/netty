@@ -29,7 +29,7 @@ import java.net.NetworkInterface;
  * of {@link ChannelConfig} and may depend on the nature of the transport it belongs
  * to.
  *
- * @param <T>   the type of the value which is valid for the {@link ChannelOption}
+ * @param <T> the type of the value which is valid for the {@link ChannelOption}
  */
 public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
 
@@ -108,13 +108,25 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
      * The default value is {@code true}.
      */
     public static final ChannelOption<Boolean> AUTO_CLOSE = valueOf("AUTO_CLOSE");
-
+    // TCP参数 设置广播模式
     public static final ChannelOption<Boolean> SO_BROADCAST = valueOf("SO_BROADCAST");
+    // TCP协议的心跳机制 true为连接保持心跳 默认值为false 启用该功能时 TCP会主动探测空闲连接的有效性 默认心跳间隔是7200s(2h) netty默认关闭此功能
     public static final ChannelOption<Boolean> SO_KEEPALIVE = valueOf("SO_KEEPALIVE");
+    // socket发送缓冲区大小
     public static final ChannelOption<Integer> SO_SNDBUF = valueOf("SO_SNDBUF");
+    // socket接收缓冲区大小
     public static final ChannelOption<Integer> SO_RCVBUF = valueOf("SO_RCVBUF");
+    // TCP参数 设置为true表示地址复用 有4种情况需要用到该参数
+    // 1.当有一个相同本地地址和端口的socket1处于TIME_WAIT状态时 而希望的启动的socket2要占用该地址和端口 如在重启服务且保持先前端口时
+    // 2.由多块网卡或用IP Alias技术的机器在统一端口启动多个进程 但每个进程绑定的本地IP地址不能相同
+    // 3.单个进程绑定相同的端口到多个socket上 但每个socket绑定的IP地址不同
+    // 4.完全相同的地址和端口的重复绑定 但这只用于UDP的多播 不用于TCP
     public static final ChannelOption<Boolean> SO_REUSEADDR = valueOf("SO_REUSEADDR");
+    // TCP参数 表示关闭socket的延迟时间 默认值-1表示禁用 -1表示socket.close方法立即返回 单操作系统底层会将发送缓冲区的数据全部发送到对端
+    // 0表示socket.close方法立即返回 操作系统放弃发送缓冲区的数据 直接向对端发送RST包 对端收到复位错误
+    // 非0整数值表示调用socket.close方法的线程被阻塞 知道延迟时间到来 && 发送缓冲区中的数据发送完毕 若超时则对段会收到复位错误
     public static final ChannelOption<Integer> SO_LINGER = valueOf("SO_LINGER");
+    // TCP参数 表示服务端接受连接的队列长度 如果队列已满客户端连接将被拒绝 默认值在Windows为200 其他操作系统为128
     public static final ChannelOption<Integer> SO_BACKLOG = valueOf("SO_BACKLOG");
     public static final ChannelOption<Integer> SO_TIMEOUT = valueOf("SO_TIMEOUT");
 
@@ -123,7 +135,8 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     public static final ChannelOption<NetworkInterface> IP_MULTICAST_IF = valueOf("IP_MULTICAST_IF");
     public static final ChannelOption<Integer> IP_MULTICAST_TTL = valueOf("IP_MULTICAST_TTL");
     public static final ChannelOption<Boolean> IP_MULTICAST_LOOP_DISABLED = valueOf("IP_MULTICAST_LOOP_DISABLED");
-
+    // 表示立即发送数据 默认值为true 操作系统默认为false
+    // 该参数值与是否开启Nagle算法是相反的 true表示关闭 false表示开启 如果要求高实时性 有数据发送时立刻发送 此选项应设置为true 如果需要减少发送次数和减少网络交互次数 应设置为false
     public static final ChannelOption<Boolean> TCP_NODELAY = valueOf("TCP_NODELAY");
 
     @Deprecated

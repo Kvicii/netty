@@ -99,8 +99,6 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
      */
     protected long ctx;
     private final List<String> unmodifiableCiphers;
-    private final long sessionCacheSize;
-    private final long sessionTimeout;
     private final OpenSslApplicationProtocolNegotiator apn;
     private final int mode;
 
@@ -179,16 +177,15 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
     }
 
     ReferenceCountedOpenSslContext(Iterable<String> ciphers, CipherSuiteFilter cipherFilter,
-                                   ApplicationProtocolConfig apnCfg, long sessionCacheSize, long sessionTimeout,
+                                   ApplicationProtocolConfig apnCfg,
                                    int mode, Certificate[] keyCertChain, ClientAuth clientAuth, String[] protocols,
                                    boolean startTls, boolean enableOcsp, boolean leakDetection) throws SSLException {
-        this(ciphers, cipherFilter, toNegotiator(apnCfg), sessionCacheSize, sessionTimeout, mode, keyCertChain,
+        this(ciphers, cipherFilter, toNegotiator(apnCfg), mode, keyCertChain,
                 clientAuth, protocols, startTls, enableOcsp, leakDetection);
     }
 
     ReferenceCountedOpenSslContext(Iterable<String> ciphers, CipherSuiteFilter cipherFilter,
-                                   OpenSslApplicationProtocolNegotiator apn, long sessionCacheSize,
-                                   long sessionTimeout, int mode, Certificate[] keyCertChain,
+                                   OpenSslApplicationProtocolNegotiator apn, int mode, Certificate[] keyCertChain,
                                    ClientAuth clientAuth, String[] protocols, boolean startTls, boolean enableOcsp,
                                    boolean leakDetection) throws SSLException {
         super(startTls);
@@ -218,10 +215,12 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
         // Create a new SSL_CTX and configure it.
         boolean success = false;
         try {
+            boolean tlsv13Supported = OpenSsl.isTlsv13Supported();
+
             try {
                 int protocolOpts = SSL.SSL_PROTOCOL_SSLV3 | SSL.SSL_PROTOCOL_TLSV1 |
                                    SSL.SSL_PROTOCOL_TLSV1_1 | SSL.SSL_PROTOCOL_TLSV1_2;
-                if (OpenSsl.isTlsv13Supported()) {
+                if (tlsv13Supported) {
                     protocolOpts |= SSL.SSL_PROTOCOL_TLSV1_3;
                 }
                 ctx = SSLContext.make(protocolOpts, mode);
@@ -229,7 +228,6 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
                 throw new SSLException("failed to create an SSL_CTX", e);
             }
 
-            boolean tlsv13Supported = OpenSsl.isTlsv13Supported();
             StringBuilder cipherBuilder = new StringBuilder();
             StringBuilder cipherTLSv13Builder = new StringBuilder();
 
@@ -316,22 +314,6 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
                 }
             }
 
-            /* Set session cache size, if specified */
-            if (sessionCacheSize <= 0) {
-                // Get the default session cache size using SSLContext.setSessionCacheSize()
-                sessionCacheSize = SSLContext.setSessionCacheSize(ctx, 20480);
-            }
-            this.sessionCacheSize = sessionCacheSize;
-            SSLContext.setSessionCacheSize(ctx, sessionCacheSize);
-
-            /* Set session timeout, if specified */
-            if (sessionTimeout <= 0) {
-                // Get the default session timeout using SSLContext.setSessionCacheTimeout()
-                sessionTimeout = SSLContext.setSessionCacheTimeout(ctx, 300);
-            }
-            this.sessionTimeout = sessionTimeout;
-            SSLContext.setSessionCacheTimeout(ctx, sessionTimeout);
-
             if (enableOcsp) {
                 SSLContext.enableOcsp(ctx, isClient());
             }
@@ -359,16 +341,6 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
     @Override
     public final List<String> cipherSuites() {
         return unmodifiableCiphers;
-    }
-
-    @Override
-    public final long sessionCacheSize() {
-        return sessionCacheSize;
-    }
-
-    @Override
-    public final long sessionTimeout() {
-        return sessionTimeout;
     }
 
     @Override
@@ -695,6 +667,7 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
                 // May be null if it was destroyed in the meantime.
                 return CertificateVerifier.X509_V_ERR_UNSPECIFIED;
             }
+            engine.setupHandshakeSession();
             X509Certificate[] peerCerts = certificates(chain);
             try {
                 verify(engine, peerCerts, auth);
