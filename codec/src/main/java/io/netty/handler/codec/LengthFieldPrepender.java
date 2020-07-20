@@ -51,7 +51,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
  * + 0x000E | "HELLO, WORLD" |
  * +--------+----------------+
  * </pre>
- * 固定长度字段 内容字段分别存储封装成帧(Framing)编码码实现类
+ * 固定长度字段 内容字段分别存储封装成帧(Framing)编码实现类
  */
 @Sharable
 public class LengthFieldPrepender extends MessageToMessageEncoder<ByteBuf> {

@@ -432,6 +432,7 @@ public final class PlatformDependent {
 
     /**
      * Creates a new fastest {@link LongCounter} implementation for the current platform.
+     * 直接内存计数器
      */
     public static LongCounter newLongCounter() {
         if (javaVersion() >= 8) {
