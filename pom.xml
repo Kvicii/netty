@@ -97,7 +97,7 @@
         <testJvm />
       </properties>
     </profile>
-    <!-- JDK14 -->
+    <!-- JDK15 -->
     <profile>
       <id>java15</id>
       <activation>
@@ -118,6 +118,7 @@
         <skipOsgiTestsuite>true</skipOsgiTestsuite>
       </properties>
     </profile>
+    <!-- JDK14 -->
     <profile>
       <id>java14</id>
       <activation>
@@ -556,7 +557,7 @@
       <dependency>
         <groupId>org.jctools</groupId>
         <artifactId>jctools-core</artifactId>
-        <version>3.0.0</version>
+        <version>3.1.0</version>
       </dependency>
 
       <dependency>
