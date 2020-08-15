@@ -91,11 +91,11 @@
           <exists>${java.home}/bin/gu</exists>
         </file>
       </activation>
-      <properties>
-        <skipNativeImageTestsuite>false</skipNativeImageTestsuite>
-        <forbiddenapis.skip>true</forbiddenapis.skip>
-        <testJvm />
-      </properties>
+<!--      <properties>-->
+<!--        <skipNativeImageTestsuite>false</skipNativeImageTestsuite>-->
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
+<!--        <testJvm />-->
+<!--      </properties>-->
     </profile>
     <!-- JDK15 -->
     <profile>
@@ -103,20 +103,20 @@
       <activation>
         <jdk>15</jdk>
       </activation>
-      <properties>
-        <!-- Not use alpn agent as Java11+ supports alpn out of the box -->
-        <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
-        <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--      <properties>-->
+<!--         Not use alpn agent as Java11+ supports alpn out of the box -->
+<!--        <argLine.alpnAgent />-->
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
+<!--         Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
         <!-- This is the minimum supported by Java12+ -->
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+<!--        <maven.compiler.source>1.7</maven.compiler.source>-->
+<!--        <maven.compiler.target>1.7</maven.compiler.target>-->
         <!-- pax-exam does not work on latest Java12 EA 22 build -->
-        <skipOsgiTestsuite>true</skipOsgiTestsuite>
-      </properties>
+<!--        <skipOsgiTestsuite>true</skipOsgiTestsuite>-->
+<!--      </properties>-->
     </profile>
     <!-- JDK14 -->
     <profile>
@@ -127,16 +127,16 @@
       <properties>
         <!-- Not use alpn agent as Java11+ supports alpn out of the box -->
         <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
         <!-- This is the minimum supported by Java12+ -->
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+<!--        <maven.compiler.source>1.7</maven.compiler.source>-->
+<!--        <maven.compiler.target>1.7</maven.compiler.target>-->
         <!-- pax-exam does not work on latest Java12 EA 22 build -->
-        <skipOsgiTestsuite>true</skipOsgiTestsuite>
+<!--        <skipOsgiTestsuite>true</skipOsgiTestsuite>-->
       </properties>
     </profile>
     <!-- JDK13 -->
@@ -148,16 +148,16 @@
       <properties>
         <!-- Not use alpn agent as Java11+ supports alpn out of the box -->
         <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
         <!-- This is the minimum supported by Java12+ -->
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+<!--        <maven.compiler.source>1.7</maven.compiler.source>-->
+<!--        <maven.compiler.target>1.7</maven.compiler.target>-->
         <!-- pax-exam does not work on latest Java12 EA 22 build -->
-        <skipOsgiTestsuite>true</skipOsgiTestsuite>
+<!--        <skipOsgiTestsuite>true</skipOsgiTestsuite>-->
       </properties>
     </profile>
 
@@ -173,16 +173,16 @@
         <argLine.java9>--illegal-access=deny ${argLine.java9.extras}</argLine.java9>
         <!-- Not use alpn agent as Java11+ supports alpn out of the box -->
         <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
         <!-- This is the minimum supported by Java12+ -->
-        <maven.compiler.source>1.7</maven.compiler.source>
-        <maven.compiler.target>1.7</maven.compiler.target>
+<!--        <maven.compiler.source>1.7</maven.compiler.source>-->
+<!--        <maven.compiler.target>1.7</maven.compiler.target>-->
         <!-- pax-exam does not work on latest Java12 EA 22 build -->
-        <skipOsgiTestsuite>true</skipOsgiTestsuite>
+<!--        <skipOsgiTestsuite>true</skipOsgiTestsuite>-->
       </properties>
     </profile>
 
@@ -198,13 +198,13 @@
         <argLine.java9>--illegal-access=deny ${argLine.java9.extras}</argLine.java9>
         <!-- Not use alpn agent as Java11+ supports alpn out of the box -->
         <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
         <!-- pax-exam does not work on latest Java11 build -->
-        <skipOsgiTestsuite>true</skipOsgiTestsuite>
+<!--        <skipOsgiTestsuite>true</skipOsgiTestsuite>-->
       </properties>
     </profile>
 
@@ -220,11 +220,11 @@
         <argLine.java9>--illegal-access=deny --add-modules java.xml.bind ${argLine.java9.extras}</argLine.java9>
         <!-- Not use alpn agent as Java10 supports alpn out of the box -->
         <argLine.alpnAgent />
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M3</enforcer.plugin.version>-->
         <!-- 1.4.x does not work in Java10+ -->
-        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>
+<!--        <jboss.marshalling.version>2.0.5.Final</jboss.marshalling.version>-->
       </properties>
     </profile>
 
@@ -238,9 +238,9 @@
         <!-- Not use alpn agent as Java9 supports alpn out of the box -->
         <argLine.alpnAgent />
         <!-- Skip as maven plugin not works with Java9 yet -->
-        <forbiddenapis.skip>true</forbiddenapis.skip>
+<!--        <forbiddenapis.skip>true</forbiddenapis.skip>-->
         <!-- Needed because of https://issues.apache.org/jira/browse/MENFORCER-275 -->
-        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>
+<!--        <enforcer.plugin.version>3.0.0-M1</enforcer.plugin.version>-->
       </properties>
       <activation>
         <jdk>9</jdk>
@@ -1221,11 +1221,11 @@
         <artifactId>maven-remote-resources-plugin</artifactId>
         <version>1.5</version>
       </plugin>
-      <plugin>
-        <groupId>de.thetaphi</groupId>
-        <artifactId>forbiddenapis</artifactId>
-        <version>2.2</version>
-      </plugin>
+<!--      <plugin>-->
+<!--        <groupId>de.thetaphi</groupId>-->
+<!--        <artifactId>forbiddenapis</artifactId>-->
+<!--        <version>2.2</version>-->
+<!--      </plugin>-->
     </plugins>
 
     <pluginManagement>
@@ -1458,11 +1458,11 @@
 <!--            </execution>-->
 <!--          </executions>-->
 <!--        </plugin>-->
-        <plugin>
-          <groupId>de.thetaphi</groupId>
-          <artifactId>forbiddenapis</artifactId>
-          <version>2.2</version>
-          <executions>
+<!--        <plugin>-->
+<!--          <groupId>de.thetaphi</groupId>-->
+<!--          <artifactId>forbiddenapis</artifactId>-->
+<!--          <version>2.2</version>-->
+<!--          <executions>-->
 <!--            <execution>-->
 <!--              <id>check-forbidden-apis</id>-->
 <!--              <configuration>-->
@@ -1488,32 +1488,32 @@
 <!--                <goal>check</goal>-->
 <!--              </goals>-->
 <!--            </execution>-->
-            <execution>
-              <id>check-forbidden-test-apis</id>
-              <configuration>
-                <targetVersion>${maven.compiler.target}</targetVersion>
+<!--            <execution>-->
+<!--              <id>check-forbidden-test-apis</id>-->
+<!--              <configuration>-->
+<!--                <targetVersion>${maven.compiler.target}</targetVersion>-->
                 <!-- allow undocumented classes like sun.misc.Unsafe: -->
-                <internalRuntimeForbidden>true</internalRuntimeForbidden>
+<!--                <internalRuntimeForbidden>true</internalRuntimeForbidden>-->
                 <!-- if the used Java version is too new, don't fail, just do nothing: -->
-                <failOnUnsupportedJava>false</failOnUnsupportedJava>
-                <bundledSignatures>
+<!--                <failOnUnsupportedJava>false</failOnUnsupportedJava>-->
+<!--                <bundledSignatures>-->
                   <!-- This will automatically choose the right signatures based on 'targetVersion': -->
                   <!-- enabling these should be done in the future -->
                   <!-- bundledSignature>jdk-unsafe</bundledSignature -->
                   <!-- bundledSignature>jdk-deprecated</bundledSignature -->
-                </bundledSignatures>
-                <signaturesFiles>
-                  <signaturesFile>${netty.dev.tools.directory}/forbidden/signatures.txt</signaturesFile>
-                </signaturesFiles>
-                <suppressAnnotations><annotation>**.SuppressForbidden</annotation></suppressAnnotations>
-              </configuration>
-              <phase>test-compile</phase>
-              <goals>
-                <goal>testCheck</goal>
-              </goals>
-            </execution>
-          </executions>
-        </plugin>
+<!--                </bundledSignatures>-->
+<!--                <signaturesFiles>-->
+<!--                  <signaturesFile>${netty.dev.tools.directory}/forbidden/signatures.txt</signaturesFile>-->
+<!--                </signaturesFiles>-->
+<!--                <suppressAnnotations><annotation>**.SuppressForbidden</annotation></suppressAnnotations>-->
+<!--              </configuration>-->
+<!--              <phase>test-compile</phase>-->
+<!--              <goals>-->
+<!--                <goal>testCheck</goal>-->
+<!--              </goals>-->
+<!--            </execution>-->
+<!--          </executions>-->
+<!--        </plugin>-->
       </plugins>
     </pluginManagement>
   </build>
