@@ -406,6 +406,10 @@ public final class NioEventLoop extends SingleThreadEventLoop {
     }
 
     /**
+     * NioEventLoop由两个线程构成:
+     * 1.接受客户端的连接
+     * 2.处理读写请求
+     * <p>
      * 监听/处理事件
      */
     @Override
