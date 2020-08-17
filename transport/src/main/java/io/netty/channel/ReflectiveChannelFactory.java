@@ -29,6 +29,11 @@ public class ReflectiveChannelFactory<T extends Channel> implements ChannelFacto
 
     private final Constructor<? extends T> constructor;
 
+    /**
+     * 构造函数只是将clazz的构造函数存入成员变量方便进行调用
+     *
+     * @param clazz
+     */
     public ReflectiveChannelFactory(Class<? extends T> clazz) {
         ObjectUtil.checkNotNull(clazz, "clazz");
         try {
@@ -39,6 +44,11 @@ public class ReflectiveChannelFactory<T extends Channel> implements ChannelFacto
         }
     }
 
+    /**
+     * 调用构造函数返回相应的Channel实例
+     *
+     * @return
+     */
     @Override
     public T newChannel() {
         try {

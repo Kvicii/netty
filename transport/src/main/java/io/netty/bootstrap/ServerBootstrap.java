@@ -133,8 +133,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     @Override
     void init(Channel channel) {
-        setChannelOptions(channel, newOptionsArray(), logger);
-        setAttributes(channel, attrs0().entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY));
+        setChannelOptions(channel, newOptionsArray(), logger);  // 获取用户代码中配置的channelOptions属性设置到对应的NioServerSocketChannelConfig(EchoServer中.channelOptions设置的)
+        setAttributes(channel, attrs0().entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY)); // 获取用户代码中配置的attribute属性设置到对应的Channel(EchoServer中.attributes设置的)
 
         ChannelPipeline p = channel.pipeline();
 
@@ -143,23 +143,24 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         final ChannelHandler currentChildHandler = childHandler;
         final Entry<ChannelOption<?>, Object>[] currentChildOptions;
         // 降低锁粒度
-        synchronized (childOptions) {
+        synchronized (childOptions) {   // 保存用户代码中配置的childOptions(EchoServer中.childOptions设置的)
             currentChildOptions = childOptions.entrySet().toArray(EMPTY_OPTION_ARRAY);
         }
+        // 保存用户代码中配置的childAttrs(EchoServer中.childAttrs设置的)
         final Entry<AttributeKey<?>, Object>[] currentChildAttrs = childAttrs.entrySet().toArray(EMPTY_ATTRIBUTE_ARRAY);
         // ====================================
-
+        // 配置服务端的pipeline
         p.addLast(new ChannelInitializer<Channel>() { // ChannelInitializer是一个一次性的 负责初始化的handler 负责添加一个ServerBootstrapAcceptor 一旦添加完成就把自己移除
             @Override
             public void initChannel(final Channel ch) {
                 final ChannelPipeline pipeline = ch.pipeline();
-                ChannelHandler handler = config.handler();
+                ChannelHandler handler = config.handler();  // 获取用户代码中配置的handler 即设置在AbstractBootstrap中的handler成员变量(EchoServer中.handler设置的)
                 if (handler != null) {
-                    pipeline.addLast(handler);
+                    pipeline.addLast(handler);  // 将用户代码中自定义的handler配置到pipeline
                 }
-
+                // 默认添加的ServerBootstrapAcceptor处理器 该处理器每次accept新的连接后都会使用这些属性对新的连接做相应的配置
                 ch.eventLoop().execute(() -> pipeline.addLast(new ServerBootstrapAcceptor(
-                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs)));  // ServerBootstrapAcceptor handler负责客户端连接创建后 对连接的初始化工作
+                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs)));
             }
         });
     }

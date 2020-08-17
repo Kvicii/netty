@@ -52,6 +52,12 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(NioServerSocketChannel.class);
 
+    /**
+     * {@link NioServerSocketChannel#NioServerSocketChannel()}执行时会调用此函数 此函数负责创建底层NIO的ServerSocketChannel
+     *
+     * @param provider
+     * @return
+     */
     private static ServerSocketChannel newSocket(SelectorProvider provider) {
         try {
             /**
@@ -62,8 +68,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
              */
             return provider.openServerSocketChannel();
         } catch (IOException e) {
-            throw new ChannelException(
-                    "Failed to open a server socket.", e);
+            throw new ChannelException("Failed to open a server socket.", e);
         }
     }
 
@@ -88,7 +93,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
      */
     public NioServerSocketChannel(ServerSocketChannel channel) {
         super(null, channel, SelectionKey.OP_ACCEPT);
-        config = new NioServerSocketChannelConfig(this, javaChannel().socket());
+        config = new NioServerSocketChannelConfig(this, javaChannel().socket());    // 设置TCP参数的相关配置 NioServerSocketChannelConfig是配置的抽象
     }
 
     @Override

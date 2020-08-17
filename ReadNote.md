@@ -93,6 +93,7 @@
     在一般的 Java IO 操作中，我们以**流式**的方式，**顺序**的从一个 Stream 中读取一个或者多个字节，直至读取所有字节。因为它没有缓存区，所以我们就不能随意改变读取指针的位置。   
 - 基于Buffer
 
+    
     基于 Buffer 就显得有点不同了。我们在从 Channel 中读取数据到 Buffer 中，这样 Buffer 中就有了数据后，我们就可以对这些数据进行操作了。并且不同于一般的 Java IO 操作那样是顺序操作，NIO 中我们可以随意的读取任意位置的数据，这样大大增加了处理过程中的灵活性。
 ## 阻塞IO VS 非阻塞IO
     Java IO 的各种流是阻塞的 IO 操作。这就意味着，当一个线程执行读或写 IO 操作时，该线程会被阻塞，直到有一些数据被读取，或者数据完全写入。
@@ -110,3 +111,152 @@ Java NIO 引入 Selector (选择器)的概念，它是 Java NIO 得以实现非�
 
 ## NIO VS AIO
 * AIO 并没有比 NIO 快，netty已经有稳定的NIO实现了
+
+## NIO Channel VS Java Stream
+    NIO Channel 类似 Java Stream，但又有几点不同：
+- 对于同一个 Channel，我们可以从它读取数据，也可以向它写入数据。而对于同一个 Stream，通常要么只能读，要么只能写，二选一(有些文章也描述成“单向”，也是这个意思)。
+- Channel 可以非阻塞的读写 IO 操作，而 Stream 只能阻塞的读写 IO 操作。
+- Channel 必须配合 Buffer 使用，总是先读取到一个 Buffer 中，又或者是向一个 Buffer 写入。也就是说，我们无法绕过 Buffer ，直接向 Channel 写入数据。
+
+## Channel的实现
+    Channel 在 Java 中，作为一个接口，java.nio.channels.Channel，定义了 IO 操作的连接与关闭：
+```java
+public interface Channel extends Closeable {
+
+    /**
+     * 判断此通道是否处于打开状态 
+     */
+    public boolean isOpen();
+
+    /**
+     *关闭此通道
+     */
+    public void close() throws IOException;
+}
+```
+    Channel 有非常多的实现类，最为重要的四个 Channel 实现类如下：
+
+- SocketChannel：一个客户端用来发起 TCP 的 Channel
+- ServerSocketChannel：一个服务端用来监听新进来的连接的 TCP 的 Channel；对于每一个新进来的连接，都会创建一个对应的 SocketChannel
+- DatagramChannel：通过 UDP 读写数据
+- FileChannel：从文件中，读写数据
+    
+    
+    netty主要使用的是TCP协议，因此主要是SocketChannel和ServerSocketChannel，这两类需要特别关注
+    
+## java.nio.channels.SocketChannel
+    Java NIO中的SocketChannel是一个连接到TCP网络套接字的通道。可以通过以下2种方式创建SocketChannel：
+1. 打开一个SocketChannel并连接到互联网上的某台服务器
+2. 一个新连接到达ServerSocketChannel时，会创建一个SocketChannel
+
+### 打开SocketChannel
+    下面是SocketChannel的打开方式：
+```java
+SocketChannel socketChannel = SocketChannel.open();
+socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
+```
+
+### 关闭SocketChannel
+    当用完SocketChannel之后调用SocketChannel.close()关闭SocketChannel：
+```java
+socketChannel.close();
+```
+
+### 从 SocketChannel 读取数据
+    要从SocketChannel中读取数据，可以通过调用read()完成：：
+```java
+ByteBuffer buf = ByteBuffer.allocate(48);
+int bytesRead = socketChannel.read(buf);
+```
+    首先，分配一个Buffer。从SocketChannel读取到的数据将会放到这个Buffer中
+    然后，调用SocketChannel.read()。该方法将数据从SocketChannel 读到Buffer中。read()方法返回的int值表示读了多少字节进Buffer里。如果返回的是-1，表示已经读到了流的末尾(连接关闭了)。
+
+### 写入 SocketChannel
+    写数据到SocketChannel用的是SocketChannel.write()方法，该方法以一个Buffer作为参数：
+```java
+String newData = "New String to write to file..." + System.currentTimeMillis();
+
+ByteBuffer buf = ByteBuffer.allocate(48);
+buf.clear();
+buf.put(newData.getBytes());
+
+buf.flip();
+
+while (buf.hasRemaining()) {
+    channel.write(buf);
+}
+```
+    SocketChannel.write()方法的调用是在一个while循环中的。write()方法无法保证能写多少字节到SocketChannel。所以，我们重复调用write()直到Buffer没有要写的字节为止。
+
+### 非阻塞模式
+    可以设置 SocketChannel 为非阻塞模式(non-blocking mode)。设置之后，就可以在异步模式下调用connect()，read() 和write()了
+
+### connect
+    如果SocketChannel在非阻塞模式下，此时调用connect()，该方法可能在连接建立之前就返回了。为了确定连接是否建立，可以调用finishConnect()的方法：
+```java
+socketChannel.configureBlocking(false);
+socketChannel.connect(new InetSocketAddress("http://jenkov.com", 80));
+
+while (!socketChannel.finishConnect()) {
+    // wait, or do something else...
+}
+```
+
+### write
+    非阻塞模式下，write()方法在尚未写出任何内容时可能就返回了。所以需要在循环中调用write()
+
+### read
+    非阻塞模式下，read()方法在尚未读取到任何数据时可能就返回了。所以需要关注它的int返回值，它会告诉你读取了多少字节
+
+### 非阻塞模式与选择器
+    非阻塞模式与选择器搭配会工作的更好，通过将一或多个SocketChannel注册到Selector，可以询问选择器哪个通道已经准备好了读取，写入等
+
+
+## java.nio.channels.ServerSocketChannel
+    Java NIO中的 ServerSocketChannel 是一个可以监听新进来的TCP连接的通道，就像标准IO中的ServerSocket一样。ServerSocketChannel类在 java.nio.channels包中：
+```java
+ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+serverSocketChannel.socket().bind(new InetSocketAddress(9999));
+
+while (true) {
+    SocketChannel socketChannel = serverSocketChannel.accept();
+    // do something with socketChannel...
+}
+```
+
+### 打开 ServerSocketChannel
+    通过调用 ServerSocketChannel.open() 方法来打开ServerSocketChannel：
+```java
+ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+```
+### 关闭 ServerSocketChannel
+    通过调用ServerSocketChannel.close() 方法来关闭ServerSocketChannel：
+```java
+serverSocketChannel.close();
+```
+
+### 监听新进来的连接
+    通过 ServerSocketChannel.accept() 方法监听新进来的连接。当 accept()方法返回的时候，它返回一个包含新进来的连接的 SocketChannel。因此，accept()方法会一直阻塞到有新连接到达。
+    通常不会仅仅只监听一个连接，在while循环中调用 accept()方法：
+```java
+while (true) {
+    SocketChannel socketChannel = serverSocketChannel.accept();
+    // do something with socketChannel...
+}
+```
+
+### 非阻塞模式
+    ServerSocketChannel可以设置成非阻塞模式。在非阻塞模式下，accept() 方法会立刻返回，如果还没有新进来的连接，返回的将是null。
+    因此，需要检查返回的SocketChannel是否是null：
+```java
+ServerSocketChannel serverSocketChannel = ServerSocketChannel.open();
+serverSocketChannel.socket().bind(new InetSocketAddress(9999));
+serverSocketChannel.configureBlocking(false);
+
+while (true) {
+    SocketChannel socketChannel = serverSocketChannel.accept();
+    if (socketChannel != null) {
+        // do something with socketChannel...
+    }
+}
+```

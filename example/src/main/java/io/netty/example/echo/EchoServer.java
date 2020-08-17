@@ -66,12 +66,14 @@ public final class EchoServer {
                     // 两种设置keepalive的风格
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
                     .childOption(NioChannelOption.SO_KEEPALIVE, true)
+//                    .childHandler()
                     // ====================
                     // 选择内存池实现 默认使用池化的实现
                     // .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
                     // 选择堆外/堆外内存的内存池实现--方式一
                     // 设置io.netty.type参数--方式二
                     .childOption(ChannelOption.ALLOCATOR, new PooledByteBufAllocator(false))
+//                    .childAttr()
                     .childHandler(new ChannelInitializer<SocketChannel>() { // 为子通道NioSocketChannel初始化channelPipeline
                         @Override
                         public void initChannel(SocketChannel ch) {

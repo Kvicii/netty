@@ -104,6 +104,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
      * The {@link Class} which is used to create {@link Channel} instances from.
      * You either use this or {@link #channelFactory(io.netty.channel.ChannelFactory)} if your
      * {@link Channel} implementation has no no-args constructor.
+     * <p>
+     * 通过反射获取channelClass的构造函数封装到ChannelFactory 之后在bind创建channel时调用{@link AbstractBootstrap#initAndRegister} 调用构造返回相应的实例
      */
     public B channel(Class<? extends C> channelClass) {
         return channelFactory(new ReflectiveChannelFactory<C>(
