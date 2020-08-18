@@ -41,4 +41,19 @@ public class EchoServerHandler extends ChannelInboundHandlerAdapter {
         cause.printStackTrace();
         ctx.close();
     }
+
+    @Override
+    public void channelRegistered(ChannelHandlerContext ctx) {
+        System.out.println("NioServerSocketChannel注册Selector时调用了channelRegistered方法");
+    }
+
+    @Override
+    public void handlerAdded(ChannelHandlerContext ctx) {
+        System.out.println("NioServerSocketChannel注册Selector时调用了handlerAdded方法");
+    }
+
+    @Override
+    public void channelActive(ChannelHandlerContext ctx) {
+        System.out.println("NioServerSocketChannel绑定端口时调用了channelActive方法");
+    }
 }

@@ -63,7 +63,7 @@ public class ThreadPerChannelEventLoop extends SingleThreadEventLoop {
 
     @Override
     protected void run() {
-        for (;;) {
+        for (; ; ) {
             Runnable task = takeTask();
             if (task != null) {
                 task.run();

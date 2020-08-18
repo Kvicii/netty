@@ -39,7 +39,7 @@ public final class EchoClient {
     static final boolean SSL = System.getProperty("ssl") != null;
     static final String HOST = System.getProperty("host", "127.0.0.1");
     static final int PORT = Integer.parseInt(System.getProperty("port", "8007"));
-    static final int SIZE = Integer.parseInt(System.getProperty("size", "256"));
+    static final int SIZE = Integer.parseInt(System.getProperty("size", "1024"));
 
     public static void main(String[] args) throws Exception {
         // Configure SSL.git
@@ -66,8 +66,8 @@ public final class EchoClient {
                                 p.addLast(sslCtx.newHandler(ch.alloc(), HOST, PORT));
                             }
                             //p.addLast(new LoggingHandler(LogLevel.INFO));
-//                            p.addLast(new EchoClientHandler());
-                            p.addLast(new NettyClientHandler());
+                            p.addLast(new EchoClientHandler());
+//                            p.addLast(new NettyClientHandler());
                         }
                     });
 

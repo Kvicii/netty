@@ -16,6 +16,7 @@
 package io.netty.channel;
 
 import io.netty.buffer.ByteBufAllocator;
+import io.netty.channel.nio.AbstractNioChannel;
 import io.netty.channel.socket.ChannelOutputShutdownEvent;
 import io.netty.channel.socket.ChannelOutputShutdownException;
 import io.netty.util.DefaultAttributeMap;
@@ -307,7 +308,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
      */
     @Override
     public Channel read() {
-        pipeline.read();
+        pipeline.read();    // pipeline传播读事件
         return this;
     }
 
@@ -502,10 +503,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            AbstractChannel.this.eventLoop = eventLoop;
+            AbstractChannel.this.eventLoop = eventLoop; // 后续所有的IO操作都交由该eventLoop处理
 
             if (eventLoop.inEventLoop()) {  // 判断当前线程是否是NioEventLoop的线程
-                register0(promise);
+                register0(promise); // 实际注册
             } else {
                 try {
                     eventLoop.execute(() -> register0(promise));    // 把register封装为一个task丢到eventLoop执行
@@ -528,19 +529,27 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
-                doRegister();
+                doRegister();   // 1.进行注册
                 neverRegistered = false;
                 registered = true;
 
-                // Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
-                // user may already fire events through the pipeline in the ChannelFutureListener.
+                /**
+                 * Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
+                 * user may already fire events through the pipeline in the ChannelFutureListener.
+                 * 2.触发handlerAdded事件
+                 * 对应的是调用 {@link ChannelInboundHandlerAdapter#handlerAdded(ChannelHandlerContext)} 方法
+                 */
                 pipeline.invokeHandlerAddedIfNeeded();
 
                 safeSetSuccess(promise);
+                /**
+                 * 3.触发channelRegistered事件
+                 * 对应的是调用 {@link ChannelInboundHandlerAdapter#channelRegistered(ChannelHandlerContext)} 方法
+                 */
                 pipeline.fireChannelRegistered();
                 // Only fire a channelActive if the channel has never been registered. This prevents firing
                 // multiple channel actives if the channel is deregistered and re-registered.
-                if (isActive()) {   // server socket的注册不会进入到这个逻辑 socket接受连接创建可以进入 因为server socket的bind时没有连接 而此时的socket连接已经建立好
+                if (isActive()) {   // ServerSocketChannel的注册不会进入到这个逻辑 socket接受连接创建可以进入 因为ServerSocketChannel的bind时没有连接 而此时的socket连接已经建立好
                     if (firstRegistration) {    // 是否是首次注册
                         pipeline.fireChannelActive();
                     } else if (config().isAutoRead()) {
@@ -559,6 +568,13 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
         }
 
+        /**
+         * 端口绑定最终调用的方法
+         *
+         * @param localAddress
+         * @param promise
+         * @return
+         */
         @Override
         public final void bind(final SocketAddress localAddress, final ChannelPromise promise) {
             assertEventLoop();
@@ -580,7 +596,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                                 "address (" + localAddress + ") anyway as requested.");
             }
 
-            boolean wasActive = isActive();
+            boolean wasActive = isActive(); // 端口还未绑定 此时isActive返回false
             try {
                 doBind(localAddress);   //  ServerSocketChannel这一步完成实际的绑定
             } catch (Throwable t) {
@@ -589,7 +605,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            if (!wasActive && isActive()) { // 从非active转换为active再执行
+            if (!wasActive && isActive()) { // 端口绑定完成 isActive返回true 从非active转换为active再执行
+                /**
+                 * 触发channelActive事件 从HeadContext开始进行传播
+                 * 实际调用{@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)} 方法
+                 */
                 invokeLater(() -> pipeline.fireChannelActive());
             }
 
@@ -830,6 +850,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             });
         }
 
+        /**
+         * 最终read事件会传播到该方法
+         */
         @Override
         public final void beginRead() {
             assertEventLoop();
@@ -839,6 +862,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+                /**
+                 * 调用到 如{@link AbstractNioChannel#doBeginRead()} 方法
+                 */
                 doBeginRead();
             } catch (final Exception e) {
                 invokeLater(() -> pipeline.fireExceptionCaught(e));

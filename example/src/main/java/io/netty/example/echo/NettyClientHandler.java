@@ -5,14 +5,12 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-import java.util.concurrent.TimeUnit;
-
 public class NettyClientHandler extends ChannelInboundHandlerAdapter {
 
     private final ByteBuf firstMessage;
 
     public NettyClientHandler() {
-        firstMessage = Unpooled.buffer(Integer.MAX_VALUE);
+        firstMessage = Unpooled.buffer(100000);
         for (int i = 0; i < firstMessage.capacity(); i++) {
             firstMessage.writeByte((byte) i);
         }
@@ -28,7 +26,7 @@ public class NettyClientHandler extends ChannelInboundHandlerAdapter {
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
 
 //        while (true) {
-            ctx.writeAndFlush(firstMessage);
+        ctx.writeAndFlush(firstMessage);
 //            TimeUnit.SECONDS.sleep(5);
 //        }
     }

@@ -281,7 +281,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.isDone()) {   // register是一个异步过程 此处不一定完成注册
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
-            doBind0(regFuture, channel, localAddress, promise);
+            doBind0(regFuture, channel, localAddress, promise); // 完成端口绑定
             return promise;
         } else {    // 没有注册完成 将doBind0操作封装为一个task丢到Listener 待regFuture完成后进行通知Listener执行task
             // Registration future is almost always fulfilled already, but just in case it's not.
@@ -322,6 +322,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         /**
          * 服务端是将ServerSocketChannel绑定到bossGroup 然后ServerSocketChannel负责创建子SocketChannel 再将子SocketChannel绑定到workerGroup
+         * 将NioServerSocketChannel注册到Selector
+         * 最终调用的是{@link io.netty.channel.AbstractChannel.AbstractUnsafe#register}
          */
         ChannelFuture regFuture = config().group().register(channel);
         if (regFuture.cause() != null) {

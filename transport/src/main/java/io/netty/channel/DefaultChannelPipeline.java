@@ -1002,7 +1002,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
     @Override
     public final ChannelPipeline read() {
-        tail.read();
+        tail.read();    // 向tail节点传播读事件
         return this;
     }
 
@@ -1400,9 +1400,8 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {
-            ctx.fireChannelActive();
-
-            readIfIsAutoRead(); // 创建读事件(读事件包括创建连接/读数据)
+            ctx.fireChannelActive();    // 由于是链表 将channelActive事件继续向下一个节点传播
+            readIfIsAutoRead(); // 传播读事件(读事件包括创建连接/读数据)
         }
 
         @Override
