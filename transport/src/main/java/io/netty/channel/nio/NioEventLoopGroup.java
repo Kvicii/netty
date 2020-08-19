@@ -72,6 +72,7 @@ public class NioEventLoopGroup extends MultithreadEventLoopGroup {
 
     public NioEventLoopGroup(int nThreads, Executor executor) {
         // 通用模式的nio实现多路复用跨平台的方法--provider
+        // provider方法创建了一个NioEventLoop维护的Selector
         this(nThreads, executor, SelectorProvider.provider());
     }
 

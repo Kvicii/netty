@@ -55,6 +55,9 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
      * @param args     arguments which will passed to each {@link #newChild(Executor, Object...)} call
      */
     protected MultithreadEventExecutorGroup(int nThreads, Executor executor, Object... args) {
+        /**
+         * {@link DefaultEventExecutorChooserFactory} 负责创建线程选择器
+         */
         this(nThreads, executor, DefaultEventExecutorChooserFactory.INSTANCE, args);
     }
 
@@ -72,13 +75,18 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             throw new IllegalArgumentException(String.format("nThreads: %d (expected: > 0)", nThreads));
         }
 
-        if (executor == null) {
+        if (executor == null) { // 创建线程创建器(即线程池)
+            /**
+             * 线程创建器(ThreadPerTaskExecutor)每次执行任务时都会创建一个线程实体
+             * 传入的是ThreadFactory
+             * 线程工程产生的线程最终的线程名称形如: nioEventLoopGroup-1-1
+             */
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
         children = new EventExecutor[nThreads];
 
-        for (int i = 0; i < nThreads; i++) {
+        for (int i = 0; i < nThreads; i++) {    // 循环创建NioEventLoop
             boolean success = false;
             try {
                 children[i] = newChild(executor, args);
@@ -108,7 +116,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
-        chooser = chooserFactory.newChooser(children);
+        chooser = chooserFactory.newChooser(children);  // 创建线程选择器
 
         final FutureListener<Object> terminationListener = future -> {
             if (terminatedChildren.incrementAndGet() == children.length) {
@@ -126,6 +134,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
     }
 
     protected ThreadFactory newDefaultThreadFactory() {
+        // getClass可以获取到类名首字母小写 如NioEventLoopGroup -> nioEventLoopGroup
         return new DefaultThreadFactory(getClass());
     }
 

@@ -20,13 +20,25 @@ import io.netty.util.internal.ObjectUtil;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ThreadFactory;
 
+/**
+ * 线程创建器的职责很简单
+ * 就是通过构造函数构造一个ThreadFactory 之后每次执行任务时通过ThreadFactory创建新的线程去执行
+ */
 public final class ThreadPerTaskExecutor implements Executor {
+
     private final ThreadFactory threadFactory;
 
     public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
         this.threadFactory = ObjectUtil.checkNotNull(threadFactory, "threadFactory");
     }
 
+    /**
+     * 每次执行任务时都会通过ThreadFactory构造一个新的Thread执行
+     * 该线程工程默认的newThread实现位置:
+     * {@link DefaultThreadFactory#newThread(Runnable)}
+     *
+     * @param command
+     */
     @Override
     public void execute(Runnable command) {
         threadFactory.newThread(command).start();
