@@ -75,21 +75,21 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             throw new IllegalArgumentException(String.format("nThreads: %d (expected: > 0)", nThreads));
         }
 
-        if (executor == null) { // 创建线程创建器(即线程池)
+        if (executor == null) { // 1.创建线程创建器(即线程池)
             /**
              * 线程创建器(ThreadPerTaskExecutor)每次执行任务时都会创建一个线程实体
              * 传入的是ThreadFactory
-             * 线程工程产生的线程最终的线程名称形如: nioEventLoopGroup-1-1
+             * 线程工程产生的线程最终的线程名称形如: nioEventLoopGroup-1-1    表示这个第1个NioEventLoopGroup下的第1个NioEventLoop
              */
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
 
         children = new EventExecutor[nThreads];
 
-        for (int i = 0; i < nThreads; i++) {    // 循环创建NioEventLoop
+        for (int i = 0; i < nThreads; i++) {    // 2.循环创建NioEventLoop
             boolean success = false;
             try {
-                children[i] = newChild(executor, args);
+                children[i] = newChild(executor, args); // NioEventLoop构造方法内部令Selector与NioEventLoop做唯一的绑定
                 success = true;
             } catch (Exception e) {
                 // TODO: Think about if this is a good exception type
@@ -116,8 +116,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
-        chooser = chooserFactory.newChooser(children);  // 创建线程选择器
-
+        chooser = chooserFactory.newChooser(children);  // 3.创建线程选择器 目的是给新连接绑定NioEventLoop
         final FutureListener<Object> terminationListener = future -> {
             if (terminatedChildren.incrementAndGet() == children.length) {
                 terminationFuture.setSuccess(null);

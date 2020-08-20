@@ -60,11 +60,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private static final int ST_SHUTDOWN = 4;
     private static final int ST_TERMINATED = 5;
 
-    private static final Runnable NOOP_TASK = new Runnable() {
-        @Override
-        public void run() {
-            // Do nothing.
-        }
+    private static final Runnable NOOP_TASK = () -> {
+        // Do nothing.
     };
 
     private static final AtomicIntegerFieldUpdater<SingleThreadEventExecutor> STATE_UPDATER =
@@ -156,6 +153,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         this.addTaskWakesUp = addTaskWakesUp;
         this.maxPendingTasks = Math.max(16, maxPendingTasks);
         this.executor = ThreadExecutorMap.apply(executor, this);
+        /**
+         * 调用的newTaskQueue方法是:
+         * {@link io.netty.channel.nio.NioEventLoop#newTaskQueue(int)}
+         */
         taskQueue = newTaskQueue(this.maxPendingTasks);
         rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
     }
@@ -166,8 +167,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         super(parent);
         this.addTaskWakesUp = addTaskWakesUp;
         this.maxPendingTasks = DEFAULT_MAX_PENDING_EXECUTOR_TASKS;
-        this.executor = ThreadExecutorMap.apply(executor, this);
-        this.taskQueue = ObjectUtil.checkNotNull(taskQueue, "taskQueue");
+        this.executor = ThreadExecutorMap.apply(executor, this);    // 保存线程创建器 ThreadPerTaskExecutor 后续在创建NioEventLoop对应的线程时需要用到
+        this.taskQueue = ObjectUtil.checkNotNull(taskQueue, "taskQueue");   // taskQueue用在外部线程执行netty的一些任务时 如果不是在NioEventLoop的线程里执行 直接塞到任务队列 由NioEventLoop对应的一个线程去执行
         this.rejectedExecutionHandler = ObjectUtil.checkNotNull(rejectedHandler, "rejectedHandler");
     }
 
@@ -186,7 +187,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * implementation that does not support blocking operations at all.
      */
     protected Queue<Runnable> newTaskQueue(int maxPendingTasks) {
-        return new LinkedBlockingQueue<Runnable>(maxPendingTasks);
+        return new LinkedBlockingQueue<>(maxPendingTasks);
     }
 
     /**
@@ -825,10 +826,10 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     }
 
     private void execute(Runnable task, boolean immediate) {
-        boolean inEventLoop = inEventLoop();
+        boolean inEventLoop = inEventLoop();    // 当前执行的线程是否是NioEventLoop的线程
         addTask(task);
         if (!inEventLoop) {
-            startThread();
+            startThread();  // 启动一个线程
             if (isShutdown()) {
                 boolean reject = false;
                 try {
@@ -975,10 +976,18 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         return false;
     }
 
+    /**
+     * 创建一个FastThreadLocalThread并启动
+     */
     private void doStartThread() {
         assert thread == null;
+        /**
+         * 该Executor就是ThreadPerTaskExecutor
+         * 是在{@link MultithreadEventExecutorGroup#MultithreadEventExecutorGroup(int, Executor, EventExecutorChooserFactory, Object...)}
+         * 放入executor成员变量的
+         */
         executor.execute(() -> {
-            thread = Thread.currentThread();
+            thread = Thread.currentThread();    // 拿到当前线程 即FastThreadLocalThread 保存到成员变量thread中 实现NioEventLoop和线程绑定的目的
             if (interrupted) {
                 thread.interrupt();
             }
@@ -986,7 +995,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
             boolean success = false;
             updateLastExecutionTime();
             try {
-                SingleThreadEventExecutor.this.run();
+                run();  // 调用NioEventLoop的run进行实际的启动
                 success = true;
             } catch (Throwable t) {
                 logger.warn("Unexpected exception from an event executor: ", t);
@@ -994,7 +1003,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                 for (; ; ) {
                     int oldState = state;
                     if (oldState >= ST_SHUTTING_DOWN || STATE_UPDATER.compareAndSet(
-                            SingleThreadEventExecutor.this, oldState, ST_SHUTTING_DOWN)) {
+                            this, oldState, ST_SHUTTING_DOWN)) {
                         break;
                     }
                 }
@@ -1023,7 +1032,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                     for (; ; ) {
                         int oldState = state;
                         if (oldState >= ST_SHUTDOWN || STATE_UPDATER.compareAndSet(
-                                SingleThreadEventExecutor.this, oldState, ST_SHUTDOWN)) {
+                                this, oldState, ST_SHUTDOWN)) {
                             break;
                         }
                     }
@@ -1041,7 +1050,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
                         // See https://github.com/netty/netty/issues/6596.
                         FastThreadLocal.removeAll();
 
-                        STATE_UPDATER.set(SingleThreadEventExecutor.this, ST_TERMINATED);
+                        STATE_UPDATER.set(this, ST_TERMINATED);
                         threadLock.countDown();
                         int numUserTasks = drainTasks();
                         if (numUserTasks > 0 && logger.isWarnEnabled()) {

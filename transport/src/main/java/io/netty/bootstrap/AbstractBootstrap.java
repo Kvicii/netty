@@ -281,7 +281,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.isDone()) {   // register是一个异步过程 此处不一定完成注册
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
-            doBind0(regFuture, channel, localAddress, promise); // 完成端口绑定
+            doBind0(regFuture, channel, localAddress, promise); // 4.完成端口绑定
             return promise;
         } else {    // 没有注册完成 将doBind0操作封装为一个task丢到Listener 待regFuture完成后进行通知Listener执行task
             // Registration future is almost always fulfilled already, but just in case it's not.
@@ -352,11 +352,17 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
             final ChannelFuture regFuture, final Channel channel,
             final SocketAddress localAddress, final ChannelPromise promise) {
 
-        // This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
-        // the pipeline in its channelRegistered() implementation.
+        /**
+         * This method is invoked before channelRegistered() is triggered.  Give user handlers a chance to set up
+         * the pipeline in its channelRegistered() implementation.
+         *
+         * 此处的eventLoop是在:
+         * {@link io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)} 时绑定的
+         * 通过execute执行一个task(即绑定端口)
+         */
         channel.eventLoop().execute(() -> {
             if (regFuture.isSuccess()) {
-                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);    // 端口绑定
             } else {
                 promise.setFailure(regFuture.cause());
             }

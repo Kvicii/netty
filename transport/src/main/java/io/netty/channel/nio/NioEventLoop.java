@@ -129,7 +129,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 rejectedExecutionHandler);  // 创建并且初始化了NioEventLoopGroup
         this.provider = ObjectUtil.checkNotNull(selectorProvider, "selectorProvider");
         this.selectStrategy = ObjectUtil.checkNotNull(strategy, "selectStrategy");
-        final SelectorTuple selectorTuple = openSelector(); // 创建Selector
+        final SelectorTuple selectorTuple = openSelector(); // 创建Selector 使得 一个NioEventLoop与一个Selector做唯一的绑定
         this.selector = selectorTuple.selector;
         this.unwrappedSelector = selectorTuple.unwrappedSelector;
     }
@@ -260,8 +260,9 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private static Queue<Runnable> newTaskQueue0(int maxPendingTasks) {
         // This event loop never calls takeTask()
-        return maxPendingTasks == Integer.MAX_VALUE ? PlatformDependent.<Runnable>newMpscQueue()
-                : PlatformDependent.<Runnable>newMpscQueue(maxPendingTasks);
+        // Multi Producer -> Single Consumer 多个外部线程将任务扔进来由一个线程去消费
+        return maxPendingTasks == Integer.MAX_VALUE ? PlatformDependent.newMpscQueue()
+                : PlatformDependent.newMpscQueue(maxPendingTasks);
     }
 
     /**

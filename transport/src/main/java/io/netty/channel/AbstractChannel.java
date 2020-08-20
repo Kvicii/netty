@@ -596,18 +596,18 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                                 "address (" + localAddress + ") anyway as requested.");
             }
 
-            boolean wasActive = isActive(); // 端口还未绑定 此时isActive返回false
+            boolean wasActive = isActive(); // 端口还未绑定 此时isActive方法返回false
             try {
-                doBind(localAddress);   //  ServerSocketChannel这一步完成实际的绑定
+                doBind(localAddress);   //  ServerSocketChannel在这一步调用JDK底层API完成实际的绑定
             } catch (Throwable t) {
                 safeSetFailure(promise, t);
                 closeIfClosed();
                 return;
             }
 
-            if (!wasActive && isActive()) { // 端口绑定完成 isActive返回true 从非active转换为active再执行
+            if (!wasActive && isActive()) { // 端口绑定完成后isActive方法返回true 从非active转换为active再执行
                 /**
-                 * 触发channelActive事件 从HeadContext开始进行传播
+                 * 触发channelActive事件 从pipeline的HeadContext开始进行传播
                  * 实际调用{@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)} 方法
                  */
                 invokeLater(() -> pipeline.fireChannelActive());
@@ -805,7 +805,6 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
         @Override
         public final void deregister(final ChannelPromise promise) {
             assertEventLoop();
-
             deregister(promise, false);
         }
 

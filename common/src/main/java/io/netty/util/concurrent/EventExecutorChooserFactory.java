@@ -19,7 +19,7 @@ import io.netty.util.internal.UnstableApi;
 
 /**
  * Factory that creates new {@link EventExecutorChooser}s.
- * netty给channel分配nio event loop的规则抽象
+ * netty给新连接绑定NioEventLoop的线程选择器
  */
 @UnstableApi
 public interface EventExecutorChooserFactory {
