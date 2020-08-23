@@ -51,7 +51,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     private int queueIndex = INDEX_NOT_IN_QUEUE;
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Runnable runnable, long nanoTime) {
+                        Runnable runnable, long nanoTime) {
 
         super(executor, runnable);
         deadlineNanos = nanoTime;
@@ -59,7 +59,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Runnable runnable, long nanoTime, long period) {
+                        Runnable runnable, long nanoTime, long period) {
 
         super(executor, runnable);
         deadlineNanos = nanoTime;
@@ -67,7 +67,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Callable<V> callable, long nanoTime, long period) {
+                        Callable<V> callable, long nanoTime, long period) {
 
         super(executor, callable);
         deadlineNanos = nanoTime;
@@ -75,7 +75,7 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
     }
 
     ScheduledFutureTask(AbstractScheduledEventExecutor executor,
-            Callable<V> callable, long nanoTime) {
+                        Callable<V> callable, long nanoTime) {
 
         super(executor, callable);
         deadlineNanos = nanoTime;
@@ -132,6 +132,12 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         return unit.convert(delayNanos(), TimeUnit.NANOSECONDS);
     }
 
+    /**
+     * 定时任务队列是一个优先级队列 ScheduledFutureTask作为其中的元素 比较的是任务截止时间 截止时间相同时按照添加的顺序排序(id)
+     *
+     * @param o
+     * @return
+     */
     @Override
     public int compareTo(Delayed o) {
         if (this == o) {
@@ -219,10 +225,10 @@ final class ScheduledFutureTask<V> extends PromiseTask<V> implements ScheduledFu
         buf.setCharAt(buf.length() - 1, ',');
 
         return buf.append(" deadline: ")
-                  .append(deadlineNanos)
-                  .append(", period: ")
-                  .append(periodNanos)
-                  .append(')');
+                .append(deadlineNanos)
+                .append(", period: ")
+                .append(periodNanos)
+                .append(')');
     }
 
     @Override

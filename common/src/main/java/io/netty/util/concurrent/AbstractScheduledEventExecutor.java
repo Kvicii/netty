@@ -37,6 +37,9 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     static final Runnable WAKEUP_TASK = () -> {
     };
 
+    /**
+     * Netty 的 Reactor 线程中存放定时任务的容器
+     */
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue;
 
     long nextTaskId;
@@ -74,7 +77,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
 
     PriorityQueue<ScheduledFutureTask<?>> scheduledTaskQueue() {
         if (scheduledTaskQueue == null) {
-            scheduledTaskQueue = new DefaultPriorityQueue<ScheduledFutureTask<?>>(
+            scheduledTaskQueue = new DefaultPriorityQueue<>(
                     SCHEDULED_FUTURE_TASK_COMPARATOR,
                     // Use same initial capacity as java.util.PriorityQueue
                     11);
@@ -123,10 +126,10 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         assert inEventLoop();
 
         ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
-        if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {
+        if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {    // 取定时任务队列首个任务 如果 == null || 截止时间 > 传入的时间 返回null
             return null;
         }
-        scheduledTaskQueue.remove();
+        scheduledTaskQueue.remove();    // 从定时任务队列摘掉这个任务并返回
         scheduledTask.setConsumed();
         return scheduledTask;
     }
@@ -247,10 +250,17 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
         scheduledTaskQueue().add(task.setId(++nextTaskId));
     }
 
+    /**
+     * 定时任务队列是非线程安全的
+     *
+     * @param task
+     * @param <V>
+     * @return
+     */
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
-        if (inEventLoop()) {
+        if (inEventLoop()) {    // 当前NioEventLoop线程发起的定时任务 直接添加到队列
             scheduleFromEventLoop(task);
-        } else {
+        } else {    // 外部线程发起的定时任务 启动单独的线程将添加定时任务的逻辑封装为一个普通的task(即添加[添加定时任务]的任务 而不是添加定时任务) 这样对PriorityQueue的访问就变成单线程 即只有reactor线程
             final long deadlineNanos = task.deadlineNanos();
             // task will add itself to scheduled task queue when run if not expired
             if (beforeScheduledTaskSubmitted(deadlineNanos)) {

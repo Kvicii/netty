@@ -54,12 +54,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
-    private final Runnable clearReadPendingRunnable = new Runnable() {
-        @Override
-        public void run() {
-            clearReadPending0();
-        }
-    };
+    private final Runnable clearReadPendingRunnable = () -> clearReadPending0();
 
     /**
      * The future of the current connection attempt.  If not null, subsequent
@@ -141,12 +136,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             if (eventLoop.inEventLoop()) {
                 setReadPending0(readPending);
             } else {
-                eventLoop.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        setReadPending0(readPending);
-                    }
-                });
+                eventLoop.execute(() -> setReadPending0(readPending));
             }
         } else {
             // Best effort if we are not registered yet clear readPending.
@@ -372,11 +362,18 @@ public abstract class AbstractNioChannel extends AbstractChannel {
         for (; ; ) {
             try {
                 logger.info("register server socket channel to selector, ops:{}", 0);
-                // 调用JDK底层的注册操作完成将channel绑定到selector的操作
-                // 将ServerSocketChannel绑定到当前EventLoop的Selector上
-                // ops = 0说明此时并未接收连接(还没有bind) 此时没有任何事件 只是将channel绑定到selector上去
-                // EventLoop轮询Selector中的事件做处理 处理的时候拿着attachment(this代表了NioServerSocketChannel)去做处理
-                // 后续selector轮询JDK channel上的事件 一旦事件触发取出attachment(即NioServerSocketChannel)做事件的传播
+                /**
+                 * 调用JDK底层的注册操作完成将channel绑定到selector的操作
+                 * 将ServerSocketChannel绑定到当前EventLoop的Selector上
+                 * ops = 0说明此时并未接收连接(还没有bind) 此时没有任何事件 只是将channel绑定到selector上去
+                 * EventLoop轮询Selector中的事件做处理 处理的时候拿着attachment(this代表了NioServerSocketChannel)去做处理
+                 * 后续selector轮询JDK channel上的事件 一旦事件触发取出attachment(即NioServerSocketChannel)做事件的传播
+                 *
+                 *
+                 * 对于服务端启动来说 反射创建的 NioServerSocketChannel 底层也是使用的 JDK 的 Channel 也就是这里的 javaChannel 的返回值
+                 * this 就是 NioServerSocketChannel
+                 * 这行代码的语义是 使用的 jdk 的 channel 的原生的 register方法来把 Netty 领域的 NioServerSocketChannel 注册到 jdk 领域的 selector 上去
+                 */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -402,7 +399,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     /**
      * ServerSocketChannel的端口已经绑定成功了 此时需要告诉Selector关注一个OP_ACCEPT事件
      * 一旦Selector轮询到OP_ACCEPT事件就把该事件交给netty处理
-     *
+     * <p>
      * 绑定accept事件的过程就是: 当ServerSocketChannel绑定端口完成之后 触发一个channelActive事件 ->
      * 触发channelRead事件 -> 对于ServerSocketChannel而言就是可以读了 -> 读什么? -> 读ServerSocketChannel的一个新的连接
      *

@@ -97,6 +97,9 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
      */
     @Deprecated
     public static final ChannelOption<Integer> WRITE_BUFFER_LOW_WATER_MARK = valueOf("WRITE_BUFFER_LOW_WATER_MARK");
+    /**
+     * 水位线是 Netty 自己对发送出去的数据的缓冲区 是应用层面的
+     */
     public static final ChannelOption<WriteBufferWaterMark> WRITE_BUFFER_WATER_MARK =
             valueOf("WRITE_BUFFER_WATER_MARK");
 
@@ -112,6 +115,9 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     public static final ChannelOption<Boolean> SO_BROADCAST = valueOf("SO_BROADCAST");
     // TCP协议的心跳机制 true为连接保持心跳 默认值为false 启用该功能时 TCP会主动探测空闲连接的有效性 默认心跳间隔是7200s(2h) netty默认关闭此功能
     public static final ChannelOption<Boolean> SO_KEEPALIVE = valueOf("SO_KEEPALIVE");
+    /**
+     * 缓冲区设置操作系统底层每个连接的 TCP 缓冲区 是操作系统层面的
+     */
     // socket发送缓冲区大小
     public static final ChannelOption<Integer> SO_SNDBUF = valueOf("SO_SNDBUF");
     // socket接收缓冲区大小

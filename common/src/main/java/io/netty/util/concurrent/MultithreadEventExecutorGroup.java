@@ -79,7 +79,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             /**
              * 线程创建器(ThreadPerTaskExecutor)每次执行任务时都会创建一个线程实体
              * 传入的是ThreadFactory
-             * 线程工程产生的线程最终的线程名称形如: nioEventLoopGroup-1-1    表示这个第1个NioEventLoopGroup下的第1个NioEventLoop
+             * 线程工厂产生的线程最终的线程名称形如: nioEventLoopGroup-1-1    表示这个第1个NioEventLoopGroup下的第1个NioEventLoop
              */
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }

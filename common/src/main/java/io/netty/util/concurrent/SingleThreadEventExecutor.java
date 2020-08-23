@@ -79,7 +79,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
     private volatile boolean interrupted;
 
     private final CountDownLatch threadLock = new CountDownLatch(1);
-    private final Set<Runnable> shutdownHooks = new LinkedHashSet<Runnable>();
+    private final Set<Runnable> shutdownHooks = new LinkedHashSet<>();
     private final boolean addTaskWakesUp;
     private final int maxPendingTasks;
     private final RejectedExecutionHandler rejectedExecutionHandler;
@@ -275,17 +275,23 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    /**
+     * 从定时任务队列聚和任务到TaskQueue
+     * 该逻辑执行完毕之后 定时任务队列中所有的需要执行的定时任务都会被添加到TaskQueue
+     *
+     * @return
+     */
     private boolean fetchFromScheduledTaskQueue() {
         if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
             return true;
         }
         long nanoTime = AbstractScheduledEventExecutor.nanoTime();
         for (; ; ) {
-            Runnable scheduledTask = pollScheduledTask(nanoTime);
+            Runnable scheduledTask = pollScheduledTask(nanoTime);   // 获取定时任务队列的首个任务
             if (scheduledTask == null) {
                 return true;
             }
-            if (!taskQueue.offer(scheduledTask)) {
+            if (!taskQueue.offer(scheduledTask)) {  // 添加到普通的任务队列中 如果添加失败 则把定时任务重新添加到定时任务队列 否则定时任务就被丢掉了
                 // No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
                 scheduledTaskQueue.add((ScheduledFutureTask<?>) scheduledTask);
                 return false;
@@ -324,7 +330,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      */
     protected boolean hasTasks() {
         assert inEventLoop();
-        return !taskQueue.isEmpty();
+        return !taskQueue.isEmpty();    // 当前是否有外部线程丢了一个任务到MpscQueue需要执行
     }
 
     /**
@@ -348,6 +354,12 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         }
     }
 
+    /**
+     * 向TaskQueue添加一个Task
+     *
+     * @param task
+     * @return
+     */
     final boolean offerTask(Runnable task) {
         if (isShutdown()) {
             reject();
@@ -459,38 +471,48 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
      * the tasks in the task queue and returns if it ran longer than {@code timeoutNanos}.
      */
     protected boolean runAllTasks(long timeoutNanos) {
-        fetchFromScheduledTaskQueue();
-        Runnable task = pollTask();
-        if (task == null) {
-            afterRunningAllTasks();
+        fetchFromScheduledTaskQueue();  // 从定时任务队列聚和任务到TaskQueue
+        Runnable task = pollTask(); // 从TaskQueue获取Task
+        if (task == null) { // Task == null 直接返回
+            afterRunningAllTasks(); // 执行收尾操作
             return false;
         }
 
+        // Task != null 计算截止时间
         final long deadline = timeoutNanos > 0 ? ScheduledFutureTask.nanoTime() + timeoutNanos : 0;
         long runTasks = 0;
         long lastExecutionTime;
-        for (; ; ) {
-            safeExecute(task);
+        for (; ; ) {    // 循环执行每个任务
+            safeExecute(task);  // 串行执行任务队列的任务 必须保证每个任务的耗时不会太久 否则需要放到线程池中去执行
+            runTasks++; // 标记已经执行完的任务
 
-            runTasks++;
-
-            // Check timeout every 64 tasks because nanoTime() is relatively expensive.
-            // XXX: Hard-coded value - will make it configurable if it is really a problem.
-            if ((runTasks & 0x3F) == 0) {
+            /**
+             * Check timeout every 64 tasks because nanoTime() is relatively expensive.
+             * XXX: Hard-coded value - will make it configurable if it is really a problem.
+             * 0 x 3F(64) -> 0100 0000
+             * 65 ->         0100 0001
+             * res ->        0100 0000
+             *
+             * 128 ->        1000 0000
+             * res ->        0000 0000
+             * 说明只有64的倍数才 == 0 即在执行任务队列中的所有任务时 如果任务队列中的任务可以执行64次(及64的倍数次) 每累加64次执行该判断
+             */
+            if ((runTasks & 0x3F) == 0) {   // 累计到64次任务执行完毕后 计算当前时间
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
-                if (lastExecutionTime >= deadline) {
+                //  并不是每次都执行该逻辑的原因: ScheduledFutureTask.nanoTime() 也是相对耗时操作
+                if (lastExecutionTime >= deadline) {    // 当前时间 超过 截止时间 就不再执行了
                     break;
                 }
             }
-
+            // 如果没有超过截止时间 继续从任务队列获取任务 直到任务队列没有任务
             task = pollTask();
-            if (task == null) {
+            if (task == null) { // 记录当前时间
                 lastExecutionTime = ScheduledFutureTask.nanoTime();
                 break;
             }
         }
 
-        afterRunningAllTasks();
+        afterRunningAllTasks(); // 任务队列中所有任务执行完毕 进行收尾工作
         this.lastExecutionTime = lastExecutionTime;
         return true;
     }
@@ -570,12 +592,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (inEventLoop()) {
             shutdownHooks.add(task);
         } else {
-            execute(new Runnable() {
-                @Override
-                public void run() {
-                    shutdownHooks.add(task);
-                }
-            });
+            execute(() -> shutdownHooks.add(task));
         }
     }
 
@@ -586,12 +603,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         if (inEventLoop()) {
             shutdownHooks.remove(task);
         } else {
-            execute(new Runnable() {
-                @Override
-                public void run() {
-                    shutdownHooks.remove(task);
-                }
-            });
+            execute(() -> shutdownHooks.remove(task));
         }
     }
 
@@ -599,7 +611,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         boolean ran = false;
         // Note shutdown hooks can add / remove shutdown hooks.
         while (!shutdownHooks.isEmpty()) {
-            List<Runnable> copy = new ArrayList<Runnable>(shutdownHooks);
+            List<Runnable> copy = new ArrayList<>(shutdownHooks);
             shutdownHooks.clear();
             for (Runnable task : copy) {
                 try {
@@ -985,6 +997,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
          * 该Executor就是ThreadPerTaskExecutor
          * 是在{@link MultithreadEventExecutorGroup#MultithreadEventExecutorGroup(int, Executor, EventExecutorChooserFactory, Object...)}
          * 放入executor成员变量的
+         *
+         * execute方法实际调用的就是 {@link ThreadPerTaskExecutor#execute(Runnable)} 方法 lambda中定义了一个FastThreadLocalThread 并进行了启动
          */
         executor.execute(() -> {
             thread = Thread.currentThread();    // 拿到当前线程 即FastThreadLocalThread 保存到成员变量thread中 实现NioEventLoop和线程绑定的目的

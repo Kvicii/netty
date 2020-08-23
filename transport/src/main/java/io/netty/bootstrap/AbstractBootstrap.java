@@ -29,6 +29,7 @@ import io.netty.channel.ReflectiveChannelFactory;
 import io.netty.util.AttributeKey;
 import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.GlobalEventExecutor;
+import io.netty.util.concurrent.SingleThreadEventExecutor;
 import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.SocketUtils;
 import io.netty.util.internal.StringUtil;
@@ -358,7 +359,9 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
          *
          * 此处的eventLoop是在:
          * {@link io.netty.channel.AbstractChannel.AbstractUnsafe#register(EventLoop, ChannelPromise)} 时绑定的
-         * 通过execute执行一个task(即绑定端口)
+         * 通过execute执行一个task(如绑定端口)
+         * execute调用的是:
+         * {@link SingleThreadEventExecutor#execute(java.lang.Runnable)}
          */
         channel.eventLoop().execute(() -> {
             if (regFuture.isSuccess()) {

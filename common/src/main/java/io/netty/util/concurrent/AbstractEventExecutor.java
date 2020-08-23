@@ -158,11 +158,13 @@ public abstract class AbstractEventExecutor extends AbstractExecutorService impl
 
     /**
      * Try to execute the given {@link Runnable} and just log if it throws a {@link Throwable}.
+     * 直接执行Runnable的run方法相当于所有的任务串行执行
+     * 所以要保证任务的执行时间不能过长 不然会影响其他任务 如果任务执行时间过长 就要把这个任务放到自定义线程池中处理
      */
     protected static void safeExecute(Runnable task) {
         try {
             task.run();
-        } catch (Throwable t) {
+        } catch (Throwable t) { // 任务出现了异常不终止
             logger.warn("A task raised an exception. Task: {}", task, t);
         }
     }

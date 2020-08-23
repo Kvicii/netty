@@ -30,6 +30,12 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
         keys = new SelectionKey[1024];
     }
 
+    /**
+     * add方法的时间复杂度为O(1) 如果使用Selector自带的 `SelectionKey Set` 结构 时间复杂度最差可能会达到O(n)
+     *
+     * @param o
+     * @return
+     */
     @Override
     public boolean add(SelectionKey o) {
         if (o == null) {
@@ -44,11 +50,23 @@ final class SelectedSelectionKeySet extends AbstractSet<SelectionKey> {
         return true;
     }
 
+    /**
+     * 不需要支持remove
+     *
+     * @param o
+     * @return
+     */
     @Override
     public boolean remove(Object o) {
         return false;
     }
 
+    /**
+     * 不需要支持contains
+     *
+     * @param o
+     * @return
+     */
     @Override
     public boolean contains(Object o) {
         return false;
