@@ -46,13 +46,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             " (expected: " + StringUtil.simpleClassName(ByteBuf.class) + ", " +
                     StringUtil.simpleClassName(FileRegion.class) + ')';
 
-    private final Runnable flushTask = new Runnable() {
-        @Override
-        public void run() {
-            // Calling flush0 directly to ensure we not try to flush messages that were added via write(...) in the
-            // meantime.
-            ((AbstractNioUnsafe) unsafe()).flush0();
-        }
+    private final Runnable flushTask = () -> {
+        // Calling flush0 directly to ensure we not try to flush messages that were added via write(...) in the
+        // meantime.
+        ((AbstractNioUnsafe) unsafe()).flush0();
     };
     private boolean inputClosedSeenErrorOnRead;
 
@@ -63,7 +60,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
      * @param ch     the underlying {@link SelectableChannel} on which it operates
      */
     protected AbstractNioByteChannel(Channel parent, SelectableChannel ch) {
-        super(parent, ch, SelectionKey.OP_READ);
+        super(parent, ch, SelectionKey.OP_READ);    // 为客户端channel传入OP_READ事件 后续在将NioSocketChannel绑定到Selector上时 如果Selector轮询到了事件读写 就会进行通知
     }
 
     /**
@@ -75,6 +72,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
         return false;
     }
 
+    /**
+     * 创建客户端unsafe
+     *
+     * @return
+     */
     @Override
     protected AbstractNioUnsafe newUnsafe() {
         return new NioByteUnsafe();
@@ -94,6 +96,10 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
                 ((SocketChannelConfig) config).isAllowHalfClosure();
     }
 
+    /**
+     * Unsafe负责读写抽象
+     * 客户端channel的读 {@link NioByteUnsafe} 指的是读取IO数据
+     */
     protected class NioByteUnsafe extends AbstractNioUnsafe {
 
         private void closeOnRead(ChannelPipeline pipeline) {
@@ -148,7 +154,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             try {
                 do {
                     byteBuf = allocHandle.allocate(allocator);  // 猜测分配ByteBuf的大小
-                    allocHandle.lastBytesRead(doReadBytes(byteBuf));    // 读数据/正常关闭
+                    allocHandle.lastBytesRead(doReadBytes(byteBuf));    // 客户端的读是读取IO数据/正常关闭
                     if (allocHandle.lastBytesRead() <= 0) { // 读取到的字节数 <= 0
                         // nothing was read. release the buffer.
                         byteBuf.release();  // 数据清理

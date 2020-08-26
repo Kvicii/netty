@@ -35,7 +35,7 @@ import java.util.Map;
  * </pre>
  *
  * <h3>Option map</h3>
- *
+ * <p>
  * An option map property is a dynamic write-only property which allows
  * the configuration of a {@link Channel} without down-casting its associated
  * {@link ChannelConfig}.  To update an option map, please call {@link #setOptions(Map)}.
@@ -157,8 +157,7 @@ public interface ChannelConfig {
      * It improves memory utilization and write throughput depending on
      * the platform that JVM runs on.  The default value is {@code 16}.
      *
-     * @throws IllegalArgumentException
-     *         if the specified value is {@code 0} or less than {@code 0}
+     * @throws IllegalArgumentException if the specified value is {@code 0} or less than {@code 0}
      */
     ChannelConfig setWriteSpinCount(int writeSpinCount);
 

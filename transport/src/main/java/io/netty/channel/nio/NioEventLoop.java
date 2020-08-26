@@ -482,7 +482,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 if (ioRatio == 100) {
                     try {
                         if (strategy > 0) {
-                            processSelectedKeys();  // 2.处理IO相关的逻辑
+                            processSelectedKeys();  // 2.处理IO相关的逻辑(包括新连接的接入)
                         }
                     } finally {
                         /**

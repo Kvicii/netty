@@ -42,6 +42,11 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         super(parent, ch, readInterestOp);
     }
 
+    /**
+     * 创建服务端unsafe
+     *
+     * @return
+     */
     @Override
     protected AbstractNioUnsafe newUnsafe() {
         return new NioMessageUnsafe();
@@ -55,16 +60,20 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
         super.doBeginRead();
     }
 
+    /**
+     * Unsafe负责读写抽象
+     * 服务端channel 即 {@link NioMessageUnsafe} 指的是读一条新的连接
+     */
     private final class NioMessageUnsafe extends AbstractNioUnsafe {
 
-        private final List<Object> readBuf = new ArrayList<Object>();
+        private final List<Object> readBuf = new ArrayList<>(); // 服务端channel对应的MessageUnsafe对应的一个字段
 
         @Override
         public void read() {
-            assert eventLoop().inEventLoop();
-            final ChannelConfig config = config();
-            final ChannelPipeline pipeline = pipeline();
-            final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
+            assert eventLoop().inEventLoop();   // 必须是有NioEventLoop线程调用的 如果是外部线程调用的就不继续执行了
+            final ChannelConfig config = config();  // 服务端Config 即ServerSocketChannelConfig
+            final ChannelPipeline pipeline = pipeline();    // 服务端pipeline
+            final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();  // 处理服务端接入的速率
             allocHandle.reset(config);
 
             boolean closed = false;
@@ -72,7 +81,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
-                        int localRead = doReadMessages(readBuf);
+                        int localRead = doReadMessages(readBuf);    // 新连接接入 服务端的读是读取新的连接
                         if (localRead == 0) {
                             break;
                         }
@@ -81,7 +90,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                             break;
                         }
 
-                        allocHandle.incMessagesRead(localRead);
+                        allocHandle.incMessagesRead(localRead); // 分配器将读到的连接进行计数
                     } while (allocHandle.continueReading());    // 是否继续读 如果是创建连接的请求会跳出
                 } catch (Throwable t) {
                     exception = t;

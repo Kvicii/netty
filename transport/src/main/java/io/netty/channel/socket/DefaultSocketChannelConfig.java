@@ -257,6 +257,11 @@ public class DefaultSocketChannelConfig extends DefaultChannelConfig
     @Override
     public SocketChannelConfig setTcpNoDelay(boolean tcpNoDelay) {
         try {
+            /**
+             * 禁止Nagle算法
+             * Nagle算法的目的是让小的数据包聚合成大的数据包再发送出去
+             * netty为了使数据能即时的发送出去 禁止了Nagle算法
+             */
             javaSocket.setTcpNoDelay(tcpNoDelay);
         } catch (SocketException e) {
             throw new ChannelException(e);

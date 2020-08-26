@@ -260,7 +260,8 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
     private <V> ScheduledFuture<V> schedule(final ScheduledFutureTask<V> task) {
         if (inEventLoop()) {    // 当前NioEventLoop线程发起的定时任务 直接添加到队列
             scheduleFromEventLoop(task);
-        } else {    // 外部线程发起的定时任务 启动单独的线程将添加定时任务的逻辑封装为一个普通的task(即添加[添加定时任务]的任务 而不是添加定时任务) 这样对PriorityQueue的访问就变成单线程 即只有reactor线程
+        } else {    // 外部线程发起的定时任务 启动单独的线程将添加定时任务的逻辑封装为一个普通的task(即添加[添加定时任务]的任务 而不是添加定时任务)
+            // 这样对PriorityQueue的访问就变成单线程 即只有reactor线程
             final long deadlineNanos = task.deadlineNanos();
             // task will add itself to scheduled task queue when run if not expired
             if (beforeScheduledTaskSubmitted(deadlineNanos)) {

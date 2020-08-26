@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.Map;
 
-import static io.netty.channel.ChannelOption.*;
+import static io.netty.channel.ChannelOption.SO_TIMEOUT;
 
 /**
  * Default {@link OioSocketChannelConfig} implementation

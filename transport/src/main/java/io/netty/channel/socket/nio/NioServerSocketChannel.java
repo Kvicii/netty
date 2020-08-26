@@ -159,7 +159,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
         // 接受新连接创建SocketChannel
         SocketChannel ch = SocketUtils.accept(javaChannel());
         try {
-            if (ch != null) {
+            if (ch != null) {   // 将JDK创建的原生SocketChannel封装为netty的NioSocketChannel 添加到集合并返回
                 buf.add(new NioSocketChannel(this, ch));
                 return 1;
             }

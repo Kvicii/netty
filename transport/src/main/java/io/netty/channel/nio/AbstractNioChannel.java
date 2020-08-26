@@ -50,7 +50,9 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
 
+    // 该成员变量保存了服务端channel和客户端channel的一个底层JDK的channel
     private final SelectableChannel ch;
+    // 读 ACCEPT 或 READ 事件
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
@@ -66,6 +68,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     /**
      * Create a new instance
+     * <p>
+     * 服务端channel或客户端channel最终都要调用该构造函数进行成员变量的保存 设置channel非阻塞
      *
      * @param parent         the parent {@link Channel} by which this instance was created. May be {@code null}
      * @param ch             the underlying {@link SelectableChannel} on which it operates
@@ -73,10 +77,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
-        this.ch = ch;
-        this.readInterestOp = readInterestOp;
+        this.ch = ch;   // channel保存在成员变量
+        this.readInterestOp = readInterestOp;   // 客户端channel和服务端channel注册的事件是不同的: 服务端channel注册的事件时OP_ACCEPT 客户端channel注册的事件是OP_READ
         try {
-            ch.configureBlocking(false);    // 设置服务端Channel非阻塞
+            ch.configureBlocking(false);    // 设置channel(包括客户端和服务端)非阻塞
         } catch (IOException e) {
             try {
                 ch.close();
