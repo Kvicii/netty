@@ -505,6 +505,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             AbstractChannel.this.eventLoop = eventLoop; // 后续所有的IO操作都交由该eventLoop处理
 
+            // [客户端channel绑定Selector时]此处的发起线程是服务端channel对应的NioEventLoop
             if (eventLoop.inEventLoop()) {  // 判断当前线程是否是NioEventLoop的线程
                 register0(promise); // 实际注册
             } else {

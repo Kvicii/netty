@@ -214,13 +214,25 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
             final Channel child = (Channel) msg;
-
+            /**
+             * 将用户自定义的childHandler添加到新连接的pipeline
+             * 这里的childHandler是在NioServerSocketChannel初始化时指定的:
+             * {@link ServerBootstrap#init(Channel)}
+             */
             child.pipeline().addLast(childHandler);
 
-            setChannelOptions(child, childOptions, logger);
-            setAttributes(child, childAttrs);
+            // childOptions主要是底层TCP和读写相关的参数
+            setChannelOptions(child, childOptions, logger); // 获取NioSocketChannelConfig 设置options
+            // childAttrs 是为了在客户端channel上绑定一些属性
+            setAttributes(child, childAttrs);   // 设置attrs
 
             try {
+                /**
+                 * 选择NioEventLoop并注册Selector
+                 *
+                 * 该childGroup就是EchoServer中定义的workGroup
+                 * register时会选择一个NioEventLoop进行注册
+                 */
                 childGroup.register(child).addListener((ChannelFutureListener) future -> {
                     if (!future.isSuccess()) {
                         forceClose(child, future.cause());

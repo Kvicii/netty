@@ -368,15 +368,15 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                 logger.info("register server socket channel to selector, ops:{}", 0);
                 /**
                  * 调用JDK底层的注册操作完成将channel绑定到selector的操作
-                 * 将ServerSocketChannel绑定到当前EventLoop的Selector上
+                 * 将NioServerSocketChannel/NioSocketChannel绑定到当前EventLoop的Selector上
                  * ops = 0说明此时并未接收连接(还没有bind) 此时没有任何事件 只是将channel绑定到selector上去
                  * EventLoop轮询Selector中的事件做处理 处理的时候拿着attachment(this代表了NioServerSocketChannel)去做处理
                  * 后续selector轮询JDK channel上的事件 一旦事件触发取出attachment(即NioServerSocketChannel)做事件的传播
                  *
-                 *
                  * 对于服务端启动来说 反射创建的 NioServerSocketChannel 底层也是使用的 JDK 的 Channel 也就是这里的 javaChannel 的返回值
-                 * this 就是 NioServerSocketChannel
+                 * this 就是 NioServerSocketChannel/NioSocketChannel
                  * 这行代码的语义是 使用的 jdk 的 channel 的原生的 register方法来把 Netty 领域的 NioServerSocketChannel 注册到 jdk 领域的 selector 上去
+                 * ops == 0 代表不关心任何事件
                  */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;

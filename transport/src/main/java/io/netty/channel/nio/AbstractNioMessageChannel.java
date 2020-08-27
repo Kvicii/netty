@@ -15,6 +15,7 @@
  */
 package io.netty.channel.nio;
 
+import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelConfig;
 import io.netty.channel.ChannelOutboundBuffer;
@@ -99,6 +100,17 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
                 int size = readBuf.size();
                 for (int i = 0; i < size; i++) {
                     readPending = false;
+                    /**
+                     * NioServerSocketChannel初始化时会添加一个默认的ServerBootstrapAcceptor
+                     * 即 {@link ServerBootstrap#init(io.netty.channel.Channel)}
+                     *
+                     * 服务端channel的pipeline构成:
+                     * Head 的Handler --> ServerBootstrapAcceptor 的Handler --> Tail 的Handler
+                     * pipeline传播read事件会从Head开始 经由 ServerBootstrapAcceptor 最终传播到Tail
+                     *
+                     * 最终会把客户端的每一个连接传播到ServerBootstrapAcceptor:
+                     * {@link ServerBootstrap.ServerBootstrapAcceptor#channelRead(io.netty.channel.ChannelHandlerContext, java.lang.Object)}
+                     */
                     pipeline.fireChannelRead(readBuf.get(i));   // 将结果传播出去
                 }
                 readBuf.clear();
