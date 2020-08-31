@@ -83,16 +83,23 @@ import io.netty.util.concurrent.EventExecutor;
  * {@link ChannelPipeline} to find out more about inbound and outbound operations,
  * what fundamental differences they have, how they flow in a  pipeline,  and how to handle
  * the operation in your application.
+ * <p>
+ * pipeline中链表的每一个节点都是一个ChannelHandlerContext结构
+ * 由于继承了AttributeMap 说明可以存储一些自定义的属性
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
     /**
      * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
+     * <p>
+     * pipeline当前节点所属的channel
      */
     Channel channel();
 
     /**
      * Returns the {@link EventExecutor} which is used to execute an arbitrary task.
+     * <p>
+     * 哪一个NioEventLoop最终会执行到该节点
      */
     EventExecutor executor();
 
@@ -100,11 +107,15 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * The unique name of the {@link ChannelHandlerContext}.The name was used when then {@link ChannelHandler}
      * was added to the {@link ChannelPipeline}. This name can also be used to access the registered
      * {@link ChannelHandler} from the {@link ChannelPipeline}.
+     * <p>
+     * 业务处理器名称
      */
     String name();
 
     /**
      * The {@link ChannelHandler} that is bound this {@link ChannelHandlerContext}.
+     * <p>
+     * 业务逻辑处理器
      */
     ChannelHandler handler();
 
@@ -112,9 +123,12 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
      * Return {@code true} if the {@link ChannelHandler} which belongs to this context was removed
      * from the {@link ChannelPipeline}. Note that this method is only meant to be called from with in the
      * {@link EventLoop}.
+     * <p>
+     * 节点是否已被移除
      */
     boolean isRemoved();
 
+    /*一系列事件的传播 包含Inbound和Outbound*/
     @Override
     ChannelHandlerContext fireChannelRegistered();
 
@@ -150,11 +164,16 @@ public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvok
 
     /**
      * Return the assigned {@link ChannelPipeline}
+     * <p>
+     * 当前节点所属的pipeline
      */
     ChannelPipeline pipeline();
 
     /**
      * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
+     * <p>
+     * 内存分配器
+     * 表示当前节点如果有数据读写分配ByteBuf时要使用哪个内存分配器取分配
      */
     ByteBufAllocator alloc();
 

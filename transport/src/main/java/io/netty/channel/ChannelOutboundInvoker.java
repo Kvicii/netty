@@ -21,6 +21,9 @@ import io.netty.util.concurrent.FutureListener;
 import java.net.ConnectException;
 import java.net.SocketAddress;
 
+/**
+ * pipeline每个节点(即ChannelHandlerContext)都有一个传播写事件的功能
+ */
 public interface ChannelOutboundInvoker {
 
     /**

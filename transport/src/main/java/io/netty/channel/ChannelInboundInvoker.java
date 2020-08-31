@@ -15,6 +15,10 @@
  */
 package io.netty.channel;
 
+/**
+ * 传播ChannelInbound事件 主要是读事件 | 注册事件 | active事件
+ * 说明pipeline中每一个节点(即ChannelHandlerContext)都有一个传播读事件的功能
+ */
 public interface ChannelInboundInvoker {
 
     /**

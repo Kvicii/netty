@@ -17,18 +17,22 @@ package io.netty.util;
 
 /**
  * Holds {@link Attribute}s which can be accessed via {@link AttributeKey}.
- *
+ * <p>
  * Implementations must be Thread-safe.
  */
 public interface AttributeMap {
     /**
      * Get the {@link Attribute} for the given {@link AttributeKey}. This method will never return null, but may return
      * an {@link Attribute} which does not have a value set yet.
+     * <p>
+     * 可以给 ChannelHandlerContext 添加一些属性
      */
     <T> Attribute<T> attr(AttributeKey<T> key);
 
     /**
      * Returns {@code true} if and only if the given {@link Attribute} exists in this {@link AttributeMap}.
+     * <p>
+     * 判断是否有该属性
      */
     <T> boolean hasAttr(AttributeKey<T> key);
 }
