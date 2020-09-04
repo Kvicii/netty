@@ -21,6 +21,7 @@
     <groupId>org.sonatype.oss</groupId>
     <artifactId>oss-parent</artifactId>
     <version>9</version>
+    <relativePath />
   </parent>
 
   <groupId>io.netty</groupId>
@@ -356,8 +357,9 @@
     <!-- keep in sync with PlatformDependent#ALLOWED_LINUX_OS_CLASSIFIERS -->
     <os.detection.classifierWithLikes>fedora,suse,arch</os.detection.classifierWithLikes>
     <tcnative.artifactId>netty-tcnative</tcnative.artifactId>
-    <tcnative.version>2.0.33.Final</tcnative.version>
-    <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>
+    <tcnative.version>2.0.34.Final</tcnative.version>
+<!--    <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>-->
+    <tcnative.classifier>osx-x86_64</tcnative.classifier>
     <conscrypt.groupId>org.conscrypt</conscrypt.groupId>
     <conscrypt.artifactId>conscrypt-openjdk-uber</conscrypt.artifactId>
     <conscrypt.version>2.4.0</conscrypt.version>
