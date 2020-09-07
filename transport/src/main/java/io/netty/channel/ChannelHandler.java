@@ -179,12 +179,16 @@ public interface ChannelHandler {
 
     /**
      * Gets called after the {@link ChannelHandler} was added to the actual context and it's ready to handle events.
+     * <p>
+     * 向pipeline中添加handlerContext节点成功时的回调
      */
     void handlerAdded(ChannelHandlerContext ctx) throws Exception;
 
     /**
      * Gets called after the {@link ChannelHandler} was removed from the actual context and it doesn't handle events
      * anymore.
+     * <p>
+     * 从pipeline中删除handlerContext节点成功时的回调
      */
     void handlerRemoved(ChannelHandlerContext ctx) throws Exception;
 
@@ -193,6 +197,8 @@ public interface ChannelHandler {
      *
      * @deprecated if you want to handle this event you should implement {@link ChannelInboundHandler} and
      * implement the method there.
+     * <p>
+     * 出现异常时的回调
      */
     @Deprecated
     void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception;
@@ -208,6 +214,8 @@ public interface ChannelHandler {
      * <p>
      * This annotation is provided for documentation purpose, just like
      * <a href="http://www.javaconcurrencyinpractice.com/annotations/doc/">the JCIP annotations</a>.
+     * <p>
+     * 该注解表明声明的一个ChannelHandler可以被多个pipeline添加
      */
     @Inherited
     @Documented

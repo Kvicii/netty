@@ -87,6 +87,8 @@ final class ChannelHandlerMask {
 
     /**
      * Calculate the {@code executionMask}.
+     * <p>
+     * 可以用于判断是channelInboundHandler还是channelOutboundHandler
      */
     private static int mask0(Class<? extends ChannelHandler> handlerType) {
         int mask = MASK_EXCEPTION_CAUGHT;

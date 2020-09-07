@@ -197,13 +197,22 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return addLast(null, name, handler);
     }
 
+    /**
+     * 向pipeline中添加handlerContext
+     *
+     * @param group   the {@link EventExecutorGroup} which will be used to execute the {@link ChannelHandler}
+     *                methods
+     * @param name    the name of the handler to append
+     * @param handler the handler to append
+     * @return
+     */
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
         synchronized (this) {
             checkMultiplicity(handler); // 1.判断ChannelHandler是否被重复添加
 
-            newCtx = newContext(group, filterName(name, handler), handler); // 2.1.创建一个ChannelHandlerContext节点
+            newCtx = newContext(group, filterName(name, handler), handler); // 2.1.创建一个ChannelHandlerContext节点(newContext内部最终做了判断是Inbound还是Outbound的判断)
             addLast0(newCtx);   // 2.2.添加到pipeline
 
             // If the registered is false it means that the channel was not registered on an eventLoop yet.
@@ -453,11 +462,17 @@ public class DefaultChannelPipeline implements ChannelPipeline {
         return (T) remove((AbstractChannelHandlerContext) ctx).handler();
     }
 
+    /**
+     * 删除pipeline中的handlerContext
+     *
+     * @param ctx
+     * @return
+     */
     private AbstractChannelHandlerContext remove(final AbstractChannelHandlerContext ctx) {
         assert ctx != head && ctx != tail;
 
         synchronized (this) {
-            atomicRemoveFromHandlerList(ctx);
+            atomicRemoveFromHandlerList(ctx);   // 双向链表的删除
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
             // In this case we remove the context from the pipeline and add a task that will call
@@ -469,12 +484,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 
             EventExecutor executor = ctx.executor();
             if (!executor.inEventLoop()) {
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        callHandlerRemoved0(ctx);
-                    }
-                });
+                executor.execute(() -> callHandlerRemoved0(ctx));   // 删除之后 执行回调逻辑
                 return ctx;
             }
         }
@@ -1080,8 +1090,9 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     }
 
     private AbstractChannelHandlerContext getContextOrDie(ChannelHandler handler) {
+        // 遍历链表节点 找到传入channelHandler在pipeline中对应的handlerContext对象
         AbstractChannelHandlerContext ctx = (AbstractChannelHandlerContext) context(handler);
-        if (ctx == null) {
+        if (ctx == null) {  // 没有找到抛出异常
             throw new NoSuchElementException(handler.getClass().getName());
         } else {
             return ctx;
@@ -1178,7 +1189,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
             logger.debug("Discarded inbound message {} that reached at the tail of the pipeline. " +
                     "Please check your pipeline configuration.", msg);
         } finally {
-            ReferenceCountUtil.release(msg);    // 最终释放掉对象内存
+            ReferenceCountUtil.release(msg);    // 如果msg是一个ByteBuf对象 TailContext已经是最后一个节点 无需再向后传播 最终释放掉ByteBuf对象内存
         }
     }
 

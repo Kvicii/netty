@@ -19,12 +19,14 @@ import java.net.SocketAddress;
 
 /**
  * {@link ChannelHandler} which will get notified for IO-outbound-operations.
- * 出站处理器
+ * 出站处理器 方法体现出的更多是用户的调用
  * 出站方向: ChannelOutboundHandler -> Channel
  */
 public interface ChannelOutboundHandler extends ChannelHandler {
     /**
      * Called once a bind operation is made.
+     * <p>
+     * 端口绑定
      *
      * @param ctx          the {@link ChannelHandlerContext} for which the bind operation is made
      * @param localAddress the {@link SocketAddress} to which it should bound
@@ -48,6 +50,8 @@ public interface ChannelOutboundHandler extends ChannelHandler {
 
     /**
      * Called once a disconnect operation is made.
+     * <p>
+     * 关闭连接
      *
      * @param ctx     the {@link ChannelHandlerContext} for which the disconnect operation is made
      * @param promise the {@link ChannelPromise} to notify once the operation completes
@@ -66,6 +70,8 @@ public interface ChannelOutboundHandler extends ChannelHandler {
 
     /**
      * Called once a deregister operation is made from the current registered {@link EventLoop}.
+     * <p>
+     * 取消注册
      *
      * @param ctx     the {@link ChannelHandlerContext} for which the close operation is made
      * @param promise the {@link ChannelPromise} to notify once the operation completes
