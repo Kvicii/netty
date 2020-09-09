@@ -74,7 +74,6 @@ public final class ByteBufUtil {
     static final ByteBufAllocator DEFAULT_ALLOCATOR;
 
     static {
-        // 以io.netty.allocator.type为准 如果没有安卓平台使用非池化实现 其他适用池化实现
         String allocType = SystemPropertyUtil.get(
                 "io.netty.allocator.type", PlatformDependent.isAndroid() ? "unpooled" : "pooled");
         allocType = allocType.toLowerCase(Locale.US).trim();
@@ -87,7 +86,6 @@ public final class ByteBufUtil {
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: {}", allocType);
         } else {
-            // io.netty.allocator.type设置的不是"unpooled"或者"pooled" 使用池化实现
             alloc = PooledByteBufAllocator.DEFAULT;
             logger.debug("-Dio.netty.allocator.type: pooled (unknown: {})", allocType);
         }
@@ -108,7 +106,7 @@ public final class ByteBufUtil {
      */
     static byte[] threadLocalTempArray(int minLength) {
         return minLength <= MAX_TL_ARRAY_LEN ? BYTE_ARRAYS.get()
-                : PlatformDependent.allocateUninitializedArray(minLength);
+            : PlatformDependent.allocateUninitializedArray(minLength);
     }
 
     /**
@@ -185,7 +183,6 @@ public final class ByteBufUtil {
     /**
      * Used to determine if the return value of {@link ByteBuf#ensureWritable(int, boolean)} means that there is
      * adequate space and a write operation will succeed.
-     *
      * @param ensureWritableResult The return value from {@link ByteBuf#ensureWritable(int, boolean)}.
      * @return {@code true} if {@code ensureWritableResult} means that there is adequate space and a write operation
      * will succeed.
@@ -206,19 +203,19 @@ public final class ByteBufUtil {
         int hashCode = EmptyByteBuf.EMPTY_BYTE_BUF_HASH_CODE;
         int arrayIndex = buffer.readerIndex();
         if (buffer.order() == ByteOrder.BIG_ENDIAN) {
-            for (int i = intCount; i > 0; i--) {
+            for (int i = intCount; i > 0; i --) {
                 hashCode = 31 * hashCode + buffer.getInt(arrayIndex);
                 arrayIndex += 4;
             }
         } else {
-            for (int i = intCount; i > 0; i--) {
+            for (int i = intCount; i > 0; i --) {
                 hashCode = 31 * hashCode + swapInt(buffer.getInt(arrayIndex));
                 arrayIndex += 4;
             }
         }
 
-        for (int i = byteCount; i > 0; i--) {
-            hashCode = 31 * hashCode + buffer.getByte(arrayIndex++);
+        for (int i = byteCount; i > 0; i --) {
+            hashCode = 31 * hashCode + buffer.getByte(arrayIndex ++);
         }
 
         if (hashCode == 0) {
@@ -236,8 +233,8 @@ public final class ByteBufUtil {
         int attempts = haystack.readableBytes() - needle.readableBytes() + 1;
         for (int i = 0; i < attempts; i++) {
             if (equals(needle, needle.readerIndex(),
-                    haystack, haystack.readerIndex() + i,
-                    needle.readableBytes())) {
+                       haystack, haystack.readerIndex() + i,
+                       needle.readableBytes())) {
                 return haystack.readerIndex() + i;
             }
         }
@@ -264,7 +261,7 @@ public final class ByteBufUtil {
         final int byteCount = length & 7;
 
         if (a.order() == b.order()) {
-            for (int i = longCount; i > 0; i--) {
+            for (int i = longCount; i > 0; i --) {
                 if (a.getLong(aStartIndex) != b.getLong(bStartIndex)) {
                     return false;
                 }
@@ -272,7 +269,7 @@ public final class ByteBufUtil {
                 bStartIndex += 8;
             }
         } else {
-            for (int i = longCount; i > 0; i--) {
+            for (int i = longCount; i > 0; i --) {
                 if (a.getLong(aStartIndex) != swapLong(b.getLong(bStartIndex))) {
                     return false;
                 }
@@ -281,12 +278,12 @@ public final class ByteBufUtil {
             }
         }
 
-        for (int i = byteCount; i > 0; i--) {
+        for (int i = byteCount; i > 0; i --) {
             if (a.getByte(aStartIndex) != b.getByte(bStartIndex)) {
                 return false;
             }
-            aStartIndex++;
-            bStartIndex++;
+            aStartIndex ++;
+            bStartIndex ++;
         }
 
         return true;
@@ -373,7 +370,7 @@ public final class ByteBufUtil {
     private static long compareUintBigEndianA(
             ByteBuf bufferA, ByteBuf bufferB, int aIndex, int bIndex, int uintCountIncrement) {
         for (int aEnd = aIndex + uintCountIncrement; aIndex < aEnd; aIndex += 4, bIndex += 4) {
-            long comp = bufferA.getUnsignedInt(aIndex) - bufferB.getUnsignedIntLE(bIndex);
+            long comp =  bufferA.getUnsignedInt(aIndex) - bufferB.getUnsignedIntLE(bIndex);
             if (comp != 0) {
                 return comp;
             }
@@ -384,7 +381,7 @@ public final class ByteBufUtil {
     private static long compareUintBigEndianB(
             ByteBuf bufferA, ByteBuf bufferB, int aIndex, int bIndex, int uintCountIncrement) {
         for (int aEnd = aIndex + uintCountIncrement; aIndex < aEnd; aIndex += 4, bIndex += 4) {
-            long comp = bufferA.getUnsignedIntLE(aIndex) - bufferB.getUnsignedInt(bIndex);
+            long comp =  bufferA.getUnsignedIntLE(aIndex) - bufferB.getUnsignedInt(bIndex);
             if (comp != 0) {
                 return comp;
             }
@@ -441,7 +438,7 @@ public final class ByteBufUtil {
      */
     @SuppressWarnings("deprecation")
     public static ByteBuf writeShortBE(ByteBuf buf, int shortValue) {
-        return buf.order() == ByteOrder.BIG_ENDIAN ? buf.writeShort(shortValue) : buf.writeShortLE(shortValue);
+        return buf.order() == ByteOrder.BIG_ENDIAN? buf.writeShort(shortValue) : buf.writeShortLE(shortValue);
     }
 
     /**
@@ -449,7 +446,7 @@ public final class ByteBufUtil {
      */
     @SuppressWarnings("deprecation")
     public static ByteBuf setShortBE(ByteBuf buf, int index, int shortValue) {
-        return buf.order() == ByteOrder.BIG_ENDIAN ? buf.setShort(index, shortValue) : buf.setShortLE(index, shortValue);
+        return buf.order() == ByteOrder.BIG_ENDIAN? buf.setShort(index, shortValue) : buf.setShortLE(index, shortValue);
     }
 
     /**
@@ -457,7 +454,7 @@ public final class ByteBufUtil {
      */
     @SuppressWarnings("deprecation")
     public static ByteBuf writeMediumBE(ByteBuf buf, int mediumValue) {
-        return buf.order() == ByteOrder.BIG_ENDIAN ? buf.writeMedium(mediumValue) : buf.writeMediumLE(mediumValue);
+        return buf.order() == ByteOrder.BIG_ENDIAN? buf.writeMedium(mediumValue) : buf.writeMediumLE(mediumValue);
     }
 
     /**
@@ -507,9 +504,8 @@ public final class ByteBufUtil {
     /**
      * Encode a {@link CharSequence} in <a href="http://en.wikipedia.org/wiki/UTF-8">UTF-8</a> and write
      * it to a {@link ByteBuf} allocated with {@code alloc}.
-     *
      * @param alloc The allocator used to allocate a new {@link ByteBuf}.
-     * @param seq   The characters to write into a buffer.
+     * @param seq The characters to write into a buffer.
      * @return The {@link ByteBuf} which contains the <a href="http://en.wikipedia.org/wiki/UTF-8">UTF-8</a> encoded
      * result.
      */
@@ -567,14 +563,14 @@ public final class ByteBufUtil {
     }
 
     private static int reserveAndWriteUtf8Seq(ByteBuf buf, CharSequence seq, int start, int end, int reserveBytes) {
-        for (; ; ) {
+        for (;;) {
             if (buf instanceof WrappedCompositeByteBuf) {
                 // WrappedCompositeByteBuf is a sub-class of AbstractByteBuf so it needs special handling.
                 buf = buf.unwrap();
             } else if (buf instanceof AbstractByteBuf) {
                 AbstractByteBuf byteBuf = (AbstractByteBuf) buf;
                 byteBuf.ensureWritable0(reserveBytes);
-                int written = writeUtf8(byteBuf, byteBuf.writerIndex, seq, start, end);
+                int written = writeUtf8(byteBuf, byteBuf.writerIndex, reserveBytes, seq, start, end);
                 byteBuf.writerIndex += written;
                 return written;
             } else if (buf instanceof WrappedByteBuf) {
@@ -588,12 +584,111 @@ public final class ByteBufUtil {
         }
     }
 
-    static int writeUtf8(AbstractByteBuf buffer, int writerIndex, CharSequence seq, int len) {
-        return writeUtf8(buffer, writerIndex, seq, 0, len);
+    static int writeUtf8(AbstractByteBuf buffer, int writerIndex, int reservedBytes, CharSequence seq, int len) {
+        return writeUtf8(buffer, writerIndex, reservedBytes, seq, 0, len);
     }
 
     // Fast-Path implementation
-    static int writeUtf8(AbstractByteBuf buffer, int writerIndex, CharSequence seq, int start, int end) {
+    static int writeUtf8(AbstractByteBuf buffer, int writerIndex, int reservedBytes,
+                         CharSequence seq, int start, int end) {
+        if (seq instanceof AsciiString) {
+            writeAsciiString(buffer, writerIndex, (AsciiString) seq, start, end);
+            return end - start;
+        }
+        if (PlatformDependent.hasUnsafe()) {
+            if (buffer.hasArray()) {
+                return unsafeWriteUtf8(buffer.array(), PlatformDependent.byteArrayBaseOffset(),
+                                       buffer.arrayOffset() + writerIndex, seq, start, end);
+            }
+            if (buffer.hasMemoryAddress()) {
+                return unsafeWriteUtf8(null, buffer.memoryAddress(), writerIndex, seq, start, end);
+            }
+        } else {
+            if (buffer.hasArray()) {
+                return safeArrayWriteUtf8(buffer.array(), buffer.arrayOffset() + writerIndex, seq, start, end);
+            }
+            if (buffer.isDirect()) {
+                assert buffer.nioBufferCount() == 1;
+                final ByteBuffer internalDirectBuffer = buffer.internalNioBuffer(writerIndex, reservedBytes);
+                final int bufferPosition = internalDirectBuffer.position();
+                return safeDirectWriteUtf8(internalDirectBuffer, bufferPosition, seq, start, end);
+            }
+        }
+        return safeWriteUtf8(buffer, writerIndex, seq, start, end);
+    }
+
+    // AsciiString Fast-Path implementation - no explicit bound-checks
+    static void writeAsciiString(AbstractByteBuf buffer, int writerIndex, AsciiString seq, int start, int end) {
+        final int begin = seq.arrayOffset() + start;
+        final int length = end - start;
+        if (PlatformDependent.hasUnsafe()) {
+            if (buffer.hasArray()) {
+                PlatformDependent.copyMemory(seq.array(), begin,
+                                             buffer.array(), buffer.arrayOffset() + writerIndex, length);
+                return;
+            }
+            if (buffer.hasMemoryAddress()) {
+                PlatformDependent.copyMemory(seq.array(), begin, buffer.memoryAddress() + writerIndex, length);
+                return;
+            }
+        }
+        if (buffer.hasArray()) {
+            System.arraycopy(seq.array(), begin, buffer.array(), buffer.arrayOffset() + writerIndex, length);
+            return;
+        }
+        buffer.setBytes(writerIndex, seq.array(), begin, length);
+    }
+
+    // Safe off-heap Fast-Path implementation
+    private static int safeDirectWriteUtf8(ByteBuffer buffer, int writerIndex, CharSequence seq, int start, int end) {
+        assert !(seq instanceof AsciiString);
+        int oldWriterIndex = writerIndex;
+
+        // We can use the _set methods as these not need to do any index checks and reference checks.
+        // This is possible as we called ensureWritable(...) before.
+        for (int i = start; i < end; i++) {
+            char c = seq.charAt(i);
+            if (c < 0x80) {
+                buffer.put(writerIndex++, (byte) c);
+            } else if (c < 0x800) {
+                buffer.put(writerIndex++, (byte) (0xc0 | (c >> 6)));
+                buffer.put(writerIndex++, (byte) (0x80 | (c & 0x3f)));
+            } else if (isSurrogate(c)) {
+                if (!Character.isHighSurrogate(c)) {
+                    buffer.put(writerIndex++, WRITE_UTF_UNKNOWN);
+                    continue;
+                }
+                // Surrogate Pair consumes 2 characters.
+                if (++i == end) {
+                    buffer.put(writerIndex++, WRITE_UTF_UNKNOWN);
+                    break;
+                }
+                // Extra method is copied here to NOT allow inlining of writeUtf8
+                // and increase the chance to inline CharSequence::charAt instead
+                char c2 = seq.charAt(i);
+                if (!Character.isLowSurrogate(c2)) {
+                    buffer.put(writerIndex++, WRITE_UTF_UNKNOWN);
+                    buffer.put(writerIndex++, Character.isHighSurrogate(c2)? WRITE_UTF_UNKNOWN : (byte) c2);
+                } else {
+                    int codePoint = Character.toCodePoint(c, c2);
+                    // See http://www.unicode.org/versions/Unicode7.0.0/ch03.pdf#G2630.
+                    buffer.put(writerIndex++, (byte) (0xf0 | (codePoint >> 18)));
+                    buffer.put(writerIndex++, (byte) (0x80 | ((codePoint >> 12) & 0x3f)));
+                    buffer.put(writerIndex++, (byte) (0x80 | ((codePoint >> 6) & 0x3f)));
+                    buffer.put(writerIndex++, (byte) (0x80 | (codePoint & 0x3f)));
+                }
+            } else {
+                buffer.put(writerIndex++, (byte) (0xe0 | (c >> 12)));
+                buffer.put(writerIndex++, (byte) (0x80 | ((c >> 6) & 0x3f)));
+                buffer.put(writerIndex++, (byte) (0x80 | (c & 0x3f)));
+            }
+        }
+        return writerIndex - oldWriterIndex;
+    }
+
+    // Safe off-heap Fast-Path implementation
+    private static int safeWriteUtf8(AbstractByteBuf buffer, int writerIndex, CharSequence seq, int start, int end) {
+        assert !(seq instanceof AsciiString);
         int oldWriterIndex = writerIndex;
 
         // We can use the _set methods as these not need to do any index checks and reference checks.
@@ -615,8 +710,20 @@ public final class ByteBufUtil {
                     buffer._setByte(writerIndex++, WRITE_UTF_UNKNOWN);
                     break;
                 }
-                // Extra method to allow inlining the rest of writeUtf8 which is the most likely code path.
-                writerIndex = writeUtf8Surrogate(buffer, writerIndex, c, seq.charAt(i));
+                // Extra method is copied here to NOT allow inlining of writeUtf8
+                // and increase the chance to inline CharSequence::charAt instead
+                char c2 = seq.charAt(i);
+                if (!Character.isLowSurrogate(c2)) {
+                    buffer._setByte(writerIndex++, WRITE_UTF_UNKNOWN);
+                    buffer._setByte(writerIndex++, Character.isHighSurrogate(c2)? WRITE_UTF_UNKNOWN : c2);
+                } else {
+                    int codePoint = Character.toCodePoint(c, c2);
+                    // See http://www.unicode.org/versions/Unicode7.0.0/ch03.pdf#G2630.
+                    buffer._setByte(writerIndex++, (byte) (0xf0 | (codePoint >> 18)));
+                    buffer._setByte(writerIndex++, (byte) (0x80 | ((codePoint >> 12) & 0x3f)));
+                    buffer._setByte(writerIndex++, (byte) (0x80 | ((codePoint >> 6) & 0x3f)));
+                    buffer._setByte(writerIndex++, (byte) (0x80 | (codePoint & 0x3f)));
+                }
             } else {
                 buffer._setByte(writerIndex++, (byte) (0xe0 | (c >> 12)));
                 buffer._setByte(writerIndex++, (byte) (0x80 | ((c >> 6) & 0x3f)));
@@ -626,19 +733,94 @@ public final class ByteBufUtil {
         return writerIndex - oldWriterIndex;
     }
 
-    private static int writeUtf8Surrogate(AbstractByteBuf buffer, int writerIndex, char c, char c2) {
-        if (!Character.isLowSurrogate(c2)) {
-            buffer._setByte(writerIndex++, WRITE_UTF_UNKNOWN);
-            buffer._setByte(writerIndex++, Character.isHighSurrogate(c2) ? WRITE_UTF_UNKNOWN : c2);
-            return writerIndex;
+    // safe byte[] Fast-Path implementation
+    private static int safeArrayWriteUtf8(byte[] buffer, int writerIndex, CharSequence seq, int start, int end) {
+        int oldWriterIndex = writerIndex;
+        for (int i = start; i < end; i++) {
+            char c = seq.charAt(i);
+            if (c < 0x80) {
+                buffer[writerIndex++] = (byte) c;
+            } else if (c < 0x800) {
+                buffer[writerIndex++] = (byte) (0xc0 | (c >> 6));
+                buffer[writerIndex++] = (byte) (0x80 | (c & 0x3f));
+            } else if (isSurrogate(c)) {
+                if (!Character.isHighSurrogate(c)) {
+                    buffer[writerIndex++] = WRITE_UTF_UNKNOWN;
+                    continue;
+                }
+                // Surrogate Pair consumes 2 characters.
+                if (++i == end) {
+                    buffer[writerIndex++] = WRITE_UTF_UNKNOWN;
+                    break;
+                }
+                char c2 = seq.charAt(i);
+                // Extra method is copied here to NOT allow inlining of writeUtf8
+                // and increase the chance to inline CharSequence::charAt instead
+                if (!Character.isLowSurrogate(c2)) {
+                    buffer[writerIndex++] = WRITE_UTF_UNKNOWN;
+                    buffer[writerIndex++] = (byte) (Character.isHighSurrogate(c2)? WRITE_UTF_UNKNOWN : c2);
+                } else {
+                    int codePoint = Character.toCodePoint(c, c2);
+                    // See http://www.unicode.org/versions/Unicode7.0.0/ch03.pdf#G2630.
+                    buffer[writerIndex++] = (byte) (0xf0 | (codePoint >> 18));
+                    buffer[writerIndex++] = (byte) (0x80 | ((codePoint >> 12) & 0x3f));
+                    buffer[writerIndex++] = (byte) (0x80 | ((codePoint >> 6) & 0x3f));
+                    buffer[writerIndex++] = (byte) (0x80 | (codePoint & 0x3f));
+                }
+            } else {
+                buffer[writerIndex++] = (byte) (0xe0 | (c >> 12));
+                buffer[writerIndex++] = (byte) (0x80 | ((c >> 6) & 0x3f));
+                buffer[writerIndex++] = (byte) (0x80 | (c & 0x3f));
+            }
         }
-        int codePoint = Character.toCodePoint(c, c2);
-        // See http://www.unicode.org/versions/Unicode7.0.0/ch03.pdf#G2630.
-        buffer._setByte(writerIndex++, (byte) (0xf0 | (codePoint >> 18)));
-        buffer._setByte(writerIndex++, (byte) (0x80 | ((codePoint >> 12) & 0x3f)));
-        buffer._setByte(writerIndex++, (byte) (0x80 | ((codePoint >> 6) & 0x3f)));
-        buffer._setByte(writerIndex++, (byte) (0x80 | (codePoint & 0x3f)));
-        return writerIndex;
+        return writerIndex - oldWriterIndex;
+    }
+
+    // unsafe Fast-Path implementation
+    private static int unsafeWriteUtf8(byte[] buffer, long memoryOffset, int writerIndex,
+                                       CharSequence seq, int start, int end) {
+        assert !(seq instanceof AsciiString);
+        long writerOffset = memoryOffset + writerIndex;
+        final long oldWriterOffset = writerOffset;
+        for (int i = start; i < end; i++) {
+            char c = seq.charAt(i);
+            if (c < 0x80) {
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) c);
+            } else if (c < 0x800) {
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) (0xc0 | (c >> 6)));
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | (c & 0x3f)));
+            } else if (isSurrogate(c)) {
+                if (!Character.isHighSurrogate(c)) {
+                    PlatformDependent.putByte(buffer, writerOffset++, WRITE_UTF_UNKNOWN);
+                    continue;
+                }
+                // Surrogate Pair consumes 2 characters.
+                if (++i == end) {
+                    PlatformDependent.putByte(buffer, writerOffset++, WRITE_UTF_UNKNOWN);
+                    break;
+                }
+                char c2 = seq.charAt(i);
+                // Extra method is copied here to NOT allow inlining of writeUtf8
+                // and increase the chance to inline CharSequence::charAt instead
+                if (!Character.isLowSurrogate(c2)) {
+                    PlatformDependent.putByte(buffer, writerOffset++, WRITE_UTF_UNKNOWN);
+                    PlatformDependent.putByte(buffer, writerOffset++,
+                                              (byte) (Character.isHighSurrogate(c2)? WRITE_UTF_UNKNOWN : c2));
+                } else {
+                    int codePoint = Character.toCodePoint(c, c2);
+                    // See http://www.unicode.org/versions/Unicode7.0.0/ch03.pdf#G2630.
+                    PlatformDependent.putByte(buffer, writerOffset++, (byte) (0xf0 | (codePoint >> 18)));
+                    PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | ((codePoint >> 12) & 0x3f)));
+                    PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | ((codePoint >> 6) & 0x3f)));
+                    PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | (codePoint & 0x3f)));
+                }
+            } else {
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) (0xe0 | (c >> 12)));
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | ((c >> 6) & 0x3f)));
+                PlatformDependent.putByte(buffer, writerOffset++, (byte) (0x80 | (c & 0x3f)));
+            }
+        }
+        return (int) (writerOffset - oldWriterOffset);
     }
 
     /**
@@ -726,9 +908,8 @@ public final class ByteBufUtil {
     /**
      * Encode a {@link CharSequence} in <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a> and write
      * it to a {@link ByteBuf} allocated with {@code alloc}.
-     *
      * @param alloc The allocator used to allocate a new {@link ByteBuf}.
-     * @param seq   The characters to write into a buffer.
+     * @param seq The characters to write into a buffer.
      * @return The {@link ByteBuf} which contains the <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a> encoded
      * result.
      */
@@ -742,37 +923,36 @@ public final class ByteBufUtil {
     /**
      * Encode a {@link CharSequence} in <a href="http://en.wikipedia.org/wiki/ASCII">ASCII</a> and write it
      * to a {@link ByteBuf}.
-     * <p>
+     *
      * This method returns the actual number of bytes written.
      */
     public static int writeAscii(ByteBuf buf, CharSequence seq) {
         // ASCII uses 1 byte per char
-        final int len = seq.length();
-        if (seq instanceof AsciiString) {
-            AsciiString asciiString = (AsciiString) seq;
-            buf.writeBytes(asciiString.array(), asciiString.arrayOffset(), len);
-        } else {
-            for (; ; ) {
-                if (buf instanceof WrappedCompositeByteBuf) {
-                    // WrappedCompositeByteBuf is a sub-class of AbstractByteBuf so it needs special handling.
-                    buf = buf.unwrap();
-                } else if (buf instanceof AbstractByteBuf) {
-                    AbstractByteBuf byteBuf = (AbstractByteBuf) buf;
-                    byteBuf.ensureWritable0(len);
-                    int written = writeAscii(byteBuf, byteBuf.writerIndex, seq, len);
-                    byteBuf.writerIndex += written;
-                    return written;
-                } else if (buf instanceof WrappedByteBuf) {
-                    // Unwrap as the wrapped buffer may be an AbstractByteBuf and so we can use fast-path.
-                    buf = buf.unwrap();
+        for (;;) {
+            if (buf instanceof WrappedCompositeByteBuf) {
+                // WrappedCompositeByteBuf is a sub-class of AbstractByteBuf so it needs special handling.
+                buf = buf.unwrap();
+            } else if (buf instanceof AbstractByteBuf) {
+                final int len = seq.length();
+                AbstractByteBuf byteBuf = (AbstractByteBuf) buf;
+                byteBuf.ensureWritable0(len);
+                if (seq instanceof AsciiString) {
+                    writeAsciiString(byteBuf, byteBuf.writerIndex, (AsciiString) seq, 0, len);
                 } else {
-                    byte[] bytes = seq.toString().getBytes(CharsetUtil.US_ASCII);
-                    buf.writeBytes(bytes);
-                    return bytes.length;
+                    final int written = writeAscii(byteBuf, byteBuf.writerIndex, seq, len);
+                    assert written == len;
                 }
+                byteBuf.writerIndex += len;
+                return len;
+            } else if (buf instanceof WrappedByteBuf) {
+                // Unwrap as the wrapped buffer may be an AbstractByteBuf and so we can use fast-path.
+                buf = buf.unwrap();
+            } else {
+                byte[] bytes = seq.toString().getBytes(CharsetUtil.US_ASCII);
+                buf.writeBytes(bytes);
+                return bytes.length;
             }
         }
-        return len;
     }
 
     // Fast-Path implementation
@@ -798,9 +978,9 @@ public final class ByteBufUtil {
      * Encode the given {@link CharBuffer} using the given {@link Charset} into a new {@link ByteBuf} which
      * is allocated via the {@link ByteBufAllocator}.
      *
-     * @param alloc         The {@link ByteBufAllocator} to allocate {@link ByteBuf}.
-     * @param src           The {@link CharBuffer} to encode.
-     * @param charset       The specified {@link Charset}.
+     * @param alloc The {@link ByteBufAllocator} to allocate {@link ByteBuf}.
+     * @param src The {@link CharBuffer} to encode.
+     * @param charset The specified {@link Charset}.
      * @param extraCapacity the extra capacity to alloc except the space for decoding.
      */
     public static ByteBuf encodeString(ByteBufAllocator alloc, CharBuffer src, Charset charset, int extraCapacity) {
@@ -886,7 +1066,7 @@ public final class ByteBufUtil {
      * The copy will start at {@link ByteBuf#readerIndex()} and copy {@link ByteBuf#readableBytes()} bytes.
      */
     public static byte[] getBytes(ByteBuf buf) {
-        return getBytes(buf, buf.readerIndex(), buf.readableBytes());
+        return getBytes(buf,  buf.readerIndex(), buf.readableBytes());
     }
 
     /**
@@ -940,16 +1120,16 @@ public final class ByteBufUtil {
      * Unlike the {@link #copy(AsciiString, ByteBuf)} and {@link #copy(AsciiString, int, ByteBuf, int)} methods,
      * this method do not increase a {@code writerIndex} of {@code dst} buffer.
      *
-     * @param src    the source string to copy
+     * @param src the source string to copy
      * @param srcIdx the starting offset of characters to copy
-     * @param dst    the destination buffer
+     * @param dst the destination buffer
      * @param dstIdx the starting offset in the destination buffer
      * @param length the number of characters to copy
      */
     public static void copy(AsciiString src, int srcIdx, ByteBuf dst, int dstIdx, int length) {
         if (isOutOfBounds(srcIdx, length, src.length())) {
             throw new IndexOutOfBoundsException("expected: " + "0 <= srcIdx(" + srcIdx + ") <= srcIdx + length("
-                    + length + ") <= srcLen(" + src.length() + ')');
+                            + length + ") <= srcLen(" + src.length() + ')');
         }
 
         checkNotNull(dst, "dst").setBytes(dstIdx, src.array(), srcIdx + src.arrayOffset(), length);
@@ -958,15 +1138,15 @@ public final class ByteBufUtil {
     /**
      * Copies the content of {@code src} to a {@link ByteBuf} using {@link ByteBuf#writeBytes(byte[], int, int)}.
      *
-     * @param src    the source string to copy
+     * @param src the source string to copy
      * @param srcIdx the starting offset of characters to copy
-     * @param dst    the destination buffer
+     * @param dst the destination buffer
      * @param length the number of characters to copy
      */
     public static void copy(AsciiString src, int srcIdx, ByteBuf dst, int length) {
         if (isOutOfBounds(srcIdx, length, src.length())) {
             throw new IndexOutOfBoundsException("expected: " + "0 <= srcIdx(" + srcIdx + ") <= srcIdx + length("
-                    + length + ") <= srcLen(" + src.length() + ')');
+                            + length + ") <= srcLen(" + src.length() + ')');
         }
 
         checkNotNull(dst, "dst").writeBytes(src.array(), srcIdx + src.arrayOffset(), length);
@@ -1016,25 +1196,25 @@ public final class ByteBufUtil {
 
         static {
             final char[] DIGITS = "0123456789abcdef".toCharArray();
-            for (int i = 0; i < 256; i++) {
-                HEXDUMP_TABLE[i << 1] = DIGITS[i >>> 4 & 0x0F];
-                HEXDUMP_TABLE[(i << 1) + 1] = DIGITS[i & 0x0F];
+            for (int i = 0; i < 256; i ++) {
+                HEXDUMP_TABLE[ i << 1     ] = DIGITS[i >>> 4 & 0x0F];
+                HEXDUMP_TABLE[(i << 1) + 1] = DIGITS[i       & 0x0F];
             }
 
             int i;
 
             // Generate the lookup table for hex dump paddings
-            for (i = 0; i < HEXPADDING.length; i++) {
+            for (i = 0; i < HEXPADDING.length; i ++) {
                 int padding = HEXPADDING.length - i;
                 StringBuilder buf = new StringBuilder(padding * 3);
-                for (int j = 0; j < padding; j++) {
+                for (int j = 0; j < padding; j ++) {
                     buf.append("   ");
                 }
                 HEXPADDING[i] = buf.toString();
             }
 
             // Generate the lookup table for the start-offset header in each row (up to 64KiB).
-            for (i = 0; i < HEXDUMP_ROWPREFIXES.length; i++) {
+            for (i = 0; i < HEXDUMP_ROWPREFIXES.length; i ++) {
                 StringBuilder buf = new StringBuilder(12);
                 buf.append(NEWLINE);
                 buf.append(Long.toHexString(i << 4 & 0xFFFFFFFFL | 0x100000000L));
@@ -1044,22 +1224,22 @@ public final class ByteBufUtil {
             }
 
             // Generate the lookup table for byte-to-hex-dump conversion
-            for (i = 0; i < BYTE2HEX.length; i++) {
+            for (i = 0; i < BYTE2HEX.length; i ++) {
                 BYTE2HEX[i] = ' ' + StringUtil.byteToHexStringPadded(i);
             }
 
             // Generate the lookup table for byte dump paddings
-            for (i = 0; i < BYTEPADDING.length; i++) {
+            for (i = 0; i < BYTEPADDING.length; i ++) {
                 int padding = BYTEPADDING.length - i;
                 StringBuilder buf = new StringBuilder(padding);
-                for (int j = 0; j < padding; j++) {
+                for (int j = 0; j < padding; j ++) {
                     buf.append(' ');
                 }
                 BYTEPADDING[i] = buf.toString();
             }
 
             // Generate the lookup table for byte-to-char conversion
-            for (i = 0; i < BYTE2CHAR.length; i++) {
+            for (i = 0; i < BYTE2CHAR.length; i ++) {
                 if (i <= 0x1f || i >= 0x7f) {
                     BYTE2CHAR[i] = '.';
                 } else {
@@ -1071,7 +1251,7 @@ public final class ByteBufUtil {
         private static String hexDump(ByteBuf buffer, int fromIndex, int length) {
             checkPositiveOrZero(length, "length");
             if (length == 0) {
-                return "";
+              return "";
             }
 
             int endIndex = fromIndex + length;
@@ -1079,10 +1259,10 @@ public final class ByteBufUtil {
 
             int srcIdx = fromIndex;
             int dstIdx = 0;
-            for (; srcIdx < endIndex; srcIdx++, dstIdx += 2) {
-                System.arraycopy(
-                        HEXDUMP_TABLE, buffer.getUnsignedByte(srcIdx) << 1,
-                        buf, dstIdx, 2);
+            for (; srcIdx < endIndex; srcIdx ++, dstIdx += 2) {
+              System.arraycopy(
+                  HEXDUMP_TABLE, buffer.getUnsignedByte(srcIdx) << 1,
+                  buf, dstIdx, 2);
             }
 
             return new String(buf);
@@ -1099,10 +1279,10 @@ public final class ByteBufUtil {
 
             int srcIdx = fromIndex;
             int dstIdx = 0;
-            for (; srcIdx < endIndex; srcIdx++, dstIdx += 2) {
+            for (; srcIdx < endIndex; srcIdx ++, dstIdx += 2) {
                 System.arraycopy(
-                        HEXDUMP_TABLE, (array[srcIdx] & 0xFF) << 1,
-                        buf, dstIdx, 2);
+                    HEXDUMP_TABLE, (array[srcIdx] & 0xFF) << 1,
+                    buf, dstIdx, 2);
             }
 
             return new String(buf);
@@ -1110,9 +1290,9 @@ public final class ByteBufUtil {
 
         private static String prettyHexDump(ByteBuf buffer, int offset, int length) {
             if (length == 0) {
-                return StringUtil.EMPTY_STRING;
+              return StringUtil.EMPTY_STRING;
             } else {
-                int rows = length / 16 + ((length & 15) == 0 ? 0 : 1) + 4;
+                int rows = length / 16 + ((length & 15) == 0? 0 : 1) + 4;
                 StringBuilder buf = new StringBuilder(rows * 80);
                 appendPrettyHexDump(buf, buffer, offset, length);
                 return buf.toString();
@@ -1123,22 +1303,22 @@ public final class ByteBufUtil {
             if (isOutOfBounds(offset, length, buf.capacity())) {
                 throw new IndexOutOfBoundsException(
                         "expected: " + "0 <= offset(" + offset + ") <= offset + length(" + length
-                                + ") <= " + "buf.capacity(" + buf.capacity() + ')');
+                                                    + ") <= " + "buf.capacity(" + buf.capacity() + ')');
             }
             if (length == 0) {
                 return;
             }
             dump.append(
-                    "         +-------------------------------------------------+" +
-                            NEWLINE + "         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |" +
-                            NEWLINE + "+--------+-------------------------------------------------+----------------+");
+                              "         +-------------------------------------------------+" +
+                    NEWLINE + "         |  0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f |" +
+                    NEWLINE + "+--------+-------------------------------------------------+----------------+");
 
             final int startIndex = offset;
             final int fullRows = length >>> 4;
             final int remainder = length & 0xF;
 
             // Dump the rows which have 16 bytes.
-            for (int row = 0; row < fullRows; row++) {
+            for (int row = 0; row < fullRows; row ++) {
                 int rowStartIndex = (row << 4) + startIndex;
 
                 // Per-row prefix.
@@ -1146,13 +1326,13 @@ public final class ByteBufUtil {
 
                 // Hex dump
                 int rowEndIndex = rowStartIndex + 16;
-                for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                for (int j = rowStartIndex; j < rowEndIndex; j ++) {
                     dump.append(BYTE2HEX[buf.getUnsignedByte(j)]);
                 }
                 dump.append(" |");
 
                 // ASCII dump
-                for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                for (int j = rowStartIndex; j < rowEndIndex; j ++) {
                     dump.append(BYTE2CHAR[buf.getUnsignedByte(j)]);
                 }
                 dump.append('|');
@@ -1165,14 +1345,14 @@ public final class ByteBufUtil {
 
                 // Hex dump
                 int rowEndIndex = rowStartIndex + remainder;
-                for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                for (int j = rowStartIndex; j < rowEndIndex; j ++) {
                     dump.append(BYTE2HEX[buf.getUnsignedByte(j)]);
                 }
                 dump.append(HEXPADDING[remainder]);
                 dump.append(" |");
 
                 // Ascii dump
-                for (int j = rowStartIndex; j < rowEndIndex; j++) {
+                for (int j = rowStartIndex; j < rowEndIndex; j ++) {
                     dump.append(BYTE2CHAR[buf.getUnsignedByte(j)]);
                 }
                 dump.append(BYTEPADDING[remainder]);
@@ -1180,7 +1360,7 @@ public final class ByteBufUtil {
             }
 
             dump.append(NEWLINE +
-                    "+--------+-------------------------------------------------+----------------+");
+                        "+--------+-------------------------------------------------+----------------+");
         }
 
         private static void appendHexDumpRowPrefix(StringBuilder dump, int row, int rowStartIndex) {
@@ -1233,11 +1413,11 @@ public final class ByteBufUtil {
 
         private static final ObjectPool<ThreadLocalDirectByteBuf> RECYCLER = ObjectPool.newPool(
                 new ObjectCreator<ThreadLocalDirectByteBuf>() {
-                    @Override
-                    public ThreadLocalDirectByteBuf newObject(Handle<ThreadLocalDirectByteBuf> handle) {
-                        return new ThreadLocalDirectByteBuf(handle);
-                    }
-                });
+            @Override
+            public ThreadLocalDirectByteBuf newObject(Handle<ThreadLocalDirectByteBuf> handle) {
+                return new ThreadLocalDirectByteBuf(handle);
+            }
+        });
 
         static ThreadLocalDirectByteBuf newInstance() {
             ThreadLocalDirectByteBuf buf = RECYCLER.get();
@@ -1267,7 +1447,7 @@ public final class ByteBufUtil {
      * Returns {@code true} if the given {@link ByteBuf} is valid text using the given {@link Charset},
      * otherwise return {@code false}.
      *
-     * @param buf     The given {@link ByteBuf}.
+     * @param buf The given {@link ByteBuf}.
      * @param charset The specified {@link Charset}.
      */
     public static boolean isText(ByteBuf buf, Charset charset) {
@@ -1278,10 +1458,11 @@ public final class ByteBufUtil {
      * Returns {@code true} if the specified {@link ByteBuf} starting at {@code index} with {@code length} is valid
      * text using the given {@link Charset}, otherwise return {@code false}.
      *
-     * @param buf     The given {@link ByteBuf}.
-     * @param index   The start index of the specified buffer.
-     * @param length  The length of the specified buffer.
+     * @param buf The given {@link ByteBuf}.
+     * @param index The start index of the specified buffer.
+     * @param length The length of the specified buffer.
      * @param charset The specified {@link Charset}.
+     *
      * @throws IndexOutOfBoundsException if {@code index} + {@code length} is greater than {@code buf.readableBytes}
      */
     public static boolean isText(ByteBuf buf, int index, int length, Charset charset) {
@@ -1342,10 +1523,12 @@ public final class ByteBufUtil {
      * Returns {@code true} if the specified {@link ByteBuf} starting at {@code index} with {@code length} is valid
      * UTF8 text, otherwise return {@code false}.
      *
-     * @param buf    The given {@link ByteBuf}.
-     * @param index  The start index of the specified buffer.
+     * @param buf The given {@link ByteBuf}.
+     * @param index The start index of the specified buffer.
      * @param length The length of the specified buffer.
-     * @see <a href=http://www.ietf.org/rfc/rfc3629.txt>UTF-8 Definition</a>
+     *
+     * @see
+     * <a href=http://www.ietf.org/rfc/rfc3629.txt>UTF-8 Definition</a>
      *
      * <pre>
      * 1. Bytes format of UTF-8
@@ -1495,6 +1678,5 @@ public final class ByteBufUtil {
         } while (outLen > 0);
     }
 
-    private ByteBufUtil() {
-    }
+    private ByteBufUtil() { }
 }
