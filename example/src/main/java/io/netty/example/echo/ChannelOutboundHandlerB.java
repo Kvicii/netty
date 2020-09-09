@@ -23,4 +23,10 @@ public class ChannelOutboundHandlerB extends ChannelOutboundHandlerAdapter {
             ctx.channel().pipeline().write("hello word");  // 通过context.channel()调用 从TailContext节点开始向前传播
         }, 3, TimeUnit.SECONDS);
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        System.out.println("exceptionCaughtB Outbound throw exception");
+        ctx.fireExceptionCaught(cause);
+    }
 }

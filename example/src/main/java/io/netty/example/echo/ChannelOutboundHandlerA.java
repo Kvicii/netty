@@ -14,4 +14,10 @@ public class ChannelOutboundHandlerA extends ChannelOutboundHandlerAdapter {
         System.out.println("ChannelOutboundHandlerA ==> " + msg);
         ctx.write(msg, promise);
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        System.out.println("exceptionCaughtA Outbound throw exception");
+        ctx.fireExceptionCaught(cause);
+    }
 }

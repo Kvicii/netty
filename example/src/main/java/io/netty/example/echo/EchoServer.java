@@ -15,6 +15,7 @@
  */
 package io.netty.example.echo;
 
+import com.sun.corba.se.impl.presentation.rmi.ExceptionHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;
@@ -81,12 +82,13 @@ public final class EchoServer {
                             if (sslCtx != null) {
                                 p.addLast(sslCtx.newHandler(ch.alloc()));
                             }
-//                            p.addLast(new ChannelInboundHandlerA());
-//                            p.addLast(new ChannelInboundHandlerC());
-//                            p.addLast(new ChannelInboundHandlerB());
+                            p.addLast(new ChannelInboundHandlerA());
+                            p.addLast(new ChannelInboundHandlerB());
+                            p.addLast(new ChannelInboundHandlerC());
                             p.addLast(new ChannelOutboundHandlerA());
-                            p.addLast(new ChannelOutboundHandlerC());
                             p.addLast(new ChannelOutboundHandlerB());
+                            p.addLast(new ChannelOutboundHandlerC());
+                            p.addLast(new ExceptionCaughtHandler());
                             // p.addLast(new LoggingHandler(LogLevel.INFO));
 //                            p.addLast(serverHandler);   // 将channelHandler添加到责任链 在请求或响应时都会经过链上的channelHandler处理
                         }

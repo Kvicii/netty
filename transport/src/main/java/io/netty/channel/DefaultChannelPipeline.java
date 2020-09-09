@@ -1157,7 +1157,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
      * in {@link ChannelHandler#exceptionCaught(ChannelHandlerContext, Throwable)}.
      */
     protected void onUnhandledInboundException(Throwable cause) {
-        try {
+        try {   // 异常在传播过程中没有被处理 最终被传播到了TailContext节点 给出异常堆栈
             logger.warn("An exceptionCaught() event was fired, and it reached at the tail of the pipeline. " +
                     "It usually means the last handler in the pipeline did not handle the exception.", cause);
         } finally {

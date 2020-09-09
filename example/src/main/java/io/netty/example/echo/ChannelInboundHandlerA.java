@@ -13,4 +13,10 @@ public class ChannelInboundHandlerA extends ChannelInboundHandlerAdapter {
         System.out.println("ChannelInboundHandlerA ==> " + msg);
         ctx.fireChannelRead(msg);
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        System.out.println("exceptionCaughtA Inbound throw exception");
+        ctx.fireExceptionCaught(cause);
+    }
 }
