@@ -77,13 +77,30 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
                 && PlatformDependent.hasDirectBufferNoCleanerConstructor();
     }
 
+    /**
+     * 创建过程Unsafe的HeapByteBuf对象和非Unsafe的HeapByteBuf大致相同
+     * 但在_getByte等API时Unsafe的HeapByteBuf直接调用JDK底层的Unsafe对象进行获取 而非Unsafe的HeapByteBuf对象则通过内置的数组直接根据索引获取
+     *
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newHeapBuffer(int initialCapacity, int maxCapacity) {
-        return PlatformDependent.hasUnsafe() ?
+        return PlatformDependent.hasUnsafe() ?  // 根据是否能获取到Unsafe对象进行设置
                 new InstrumentedUnpooledUnsafeHeapByteBuf(this, initialCapacity, maxCapacity) :
                 new InstrumentedUnpooledHeapByteBuf(this, initialCapacity, maxCapacity);
     }
 
+    /**
+     * 创建Unsafe的DirectByteBuf和非Unsafe的DirectByteBuf对象过程大致相同
+     * 在_getByte等API时Unsafe的DirectByteBuf对象是直接通过JDK底层的Unsafe对象直接获取 buffer的内存地址 + 偏移量 的地址获取对应的值
+     * 而非Unsafe的DirectByteBuf对象通过JDK底层的DirectByteBuf对象获取对应索引位置的值
+     *
+     * @param initialCapacity
+     * @param maxCapacity
+     * @return
+     */
     @Override
     protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
         final ByteBuf buf;

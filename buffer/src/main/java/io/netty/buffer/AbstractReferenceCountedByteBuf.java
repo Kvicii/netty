@@ -16,9 +16,9 @@
 
 package io.netty.buffer;
 
-import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
-
 import io.netty.util.internal.ReferenceCountUpdater;
+
+import java.util.concurrent.atomic.AtomicIntegerFieldUpdater;
 
 /**
  * Abstract base class for {@link ByteBuf} implementations that count references.
@@ -31,15 +31,16 @@ public abstract class AbstractReferenceCountedByteBuf extends AbstractByteBuf {
 
     private static final ReferenceCountUpdater<AbstractReferenceCountedByteBuf> updater =
             new ReferenceCountUpdater<AbstractReferenceCountedByteBuf>() {
-        @Override
-        protected AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> updater() {
-            return AIF_UPDATER;
-        }
-        @Override
-        protected long unsafeOffset() {
-            return REFCNT_FIELD_OFFSET;
-        }
-    };
+                @Override
+                protected AtomicIntegerFieldUpdater<AbstractReferenceCountedByteBuf> updater() {
+                    return AIF_UPDATER;
+                }
+
+                @Override
+                protected long unsafeOffset() {
+                    return REFCNT_FIELD_OFFSET;
+                }
+            };
 
     // Value might not equal "real" reference count, all access should be via the updater
     @SuppressWarnings("unused")

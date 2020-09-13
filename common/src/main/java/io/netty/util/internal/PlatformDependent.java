@@ -698,7 +698,7 @@ public final class PlatformDependent {
 
     public static void copyMemory(byte[] src, int srcIndex, byte[] dst, int dstIndex, long length) {
         PlatformDependent0.copyMemory(src, BYTE_ARRAY_BASE_OFFSET + srcIndex,
-                                      dst, BYTE_ARRAY_BASE_OFFSET + dstIndex, length);
+                dst, BYTE_ARRAY_BASE_OFFSET + dstIndex, length);
     }
 
     public static void copyMemory(long srcAddr, byte[] dst, int dstIndex, long length) {

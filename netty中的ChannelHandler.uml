@@ -53,7 +53,7 @@
       <point x="0.0" y="18.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.0" x="82.0" y="-22.5" />
+  <settings layout="Hierarchic Group" zoom="1.0" x="-133.5" y="-159.5" />
   <SelectedNodes>
     <node>io.netty.channel.ChannelOutboundHandlerAdapter</node>
     <node>io.netty.channel.ChannelHandlerAdapter</node>

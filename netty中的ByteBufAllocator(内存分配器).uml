@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Diagram>
+  <ID>JAVA</ID>
+  <OriginalElement>io.netty.buffer.ByteBufAllocator</OriginalElement>
+  <nodes>
+    <node x="114.75" y="312.0">io.netty.buffer.UnpooledByteBufAllocator</node>
+    <node x="304.5" y="138.0">io.netty.buffer.ByteBufAllocator</node>
+    <node x="266.0" y="225.0">io.netty.buffer.AbstractByteBufAllocator</node>
+    <node x="426.75" y="312.0">io.netty.buffer.PooledByteBufAllocator</node>
+  </nodes>
+  <notes>
+    <note x="0.0" y="0.0">
+      <node>io.netty.buffer.ByteBufAllocator</node>
+      <value>内存分配器最直接的两个分类即：Unpooled和Pooled；\n至于是Heap还是Direct类型的内存分配是根据不同的实现具体判断的：\n如果是Heap类型的就分配对内内存，如果是Direct类型的就分配堆外内存；\n而Unsafe和非Unsafe是在具体的实现中判断的，如果能拿到JDK底层的Unsafe对象就是用Unsafe进行分配，不需要人为介入</value>
+      <edge>
+        <point x="0.0" y="-18.5" />
+        <point x="0.0" y="44.0" />
+      </edge>
+    </note>
+  </notes>
+  <edges>
+    <edge source="io.netty.buffer.PooledByteBufAllocator" target="io.netty.buffer.AbstractByteBufAllocator">
+      <point x="0.0" y="-18.5" />
+      <point x="563.25" y="287.0" />
+      <point x="485.0" y="287.0" />
+      <point x="73.0" y="18.5" />
+    </edge>
+    <edge source="io.netty.buffer.UnpooledByteBufAllocator" target="io.netty.buffer.AbstractByteBufAllocator">
+      <point x="0.0" y="-18.5" />
+      <point x="260.75" y="287.0" />
+      <point x="339.0" y="287.0" />
+      <point x="-73.0" y="18.5" />
+    </edge>
+    <edge source="io.netty.buffer.AbstractByteBufAllocator" target="io.netty.buffer.ByteBufAllocator">
+      <point x="0.0" y="-18.5" />
+      <point x="0.0" y="18.5" />
+    </edge>
+  </edges>
+  <settings layout="Hierarchic Group" zoom="1.0" x="412.0" y="174.5" />
+  <SelectedNodes>
+    <node>io.netty.buffer.ByteBufAllocator</node>
+  </SelectedNodes>
+  <Categories />
+  <SCOPE>All</SCOPE>
+  <VISIBILITY>packageLocal</VISIBILITY>
+</Diagram>
+
