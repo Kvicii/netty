@@ -66,6 +66,8 @@ public class UnpooledUnsafeDirectByteBuf extends UnpooledDirectByteBuf {
     @Override
     final void setByteBuffer(ByteBuffer buffer, boolean tryFree) {
         super.setByteBuffer(buffer, tryFree);
+        // 计算ByteBuf在内存中的地址 保存到成员变量
+        // 之所以保存是因为在_getByte时可以直接通过地址获取到对应地址的Byte值
         memoryAddress = PlatformDependent.directBufferAddress(buffer);
     }
 

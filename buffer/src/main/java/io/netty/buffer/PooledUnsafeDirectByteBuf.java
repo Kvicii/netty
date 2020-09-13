@@ -18,7 +18,6 @@ package io.netty.buffer;
 
 import io.netty.util.internal.ObjectPool;
 import io.netty.util.internal.ObjectPool.Handle;
-import io.netty.util.internal.ObjectPool.ObjectCreator;
 import io.netty.util.internal.PlatformDependent;
 
 import java.io.IOException;
@@ -27,18 +26,18 @@ import java.io.OutputStream;
 import java.nio.ByteBuffer;
 
 final class PooledUnsafeDirectByteBuf extends PooledByteBuf<ByteBuffer> {
+
+    /**
+     * 在创建RECYCLER时 会传入handle 最终在回收ByteBuf时就可以通过handle对ByteBuf进行回收
+     */
     private static final ObjectPool<PooledUnsafeDirectByteBuf> RECYCLER = ObjectPool.newPool(
-            new ObjectCreator<PooledUnsafeDirectByteBuf>() {
-        @Override
-        public PooledUnsafeDirectByteBuf newObject(Handle<PooledUnsafeDirectByteBuf> handle) {
-            return new PooledUnsafeDirectByteBuf(handle, 0);
-        }
-    });
+            handle -> new PooledUnsafeDirectByteBuf(handle, 0));
 
     static PooledUnsafeDirectByteBuf newInstance(int maxCapacity) {
+        // RECYCLER是带有回收特性的对象池 get的作用是如果对象池有ByteBuf直接返回 没有则创建一个再返回
         PooledUnsafeDirectByteBuf buf = RECYCLER.get();
-        buf.reuse(maxCapacity);
-        return buf;
+        buf.reuse(maxCapacity); // 获取到的ByteBuf可能是从回收栈里获取到的 此处进行复用的操作
+        return buf; // 经过reuse后 无论这个ByteBuf是新建的还是从回收栈里复用的 该ByteBuf都是一个纯净的ByteBuf(各类指针都指向0)
     }
 
     private long memoryAddress;

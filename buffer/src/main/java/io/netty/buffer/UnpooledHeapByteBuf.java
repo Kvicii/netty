@@ -45,7 +45,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
      * Creates a new heap buffer with a newly allocated byte array.
      *
      * @param initialCapacity the initial capacity of the underlying byte array
-     * @param maxCapacity the max capacity of the underlying byte array
+     * @param maxCapacity     the max capacity of the underlying byte array
      */
     public UnpooledHeapByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
         super(maxCapacity);
@@ -56,15 +56,15 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         }
 
         this.alloc = checkNotNull(alloc, "alloc");
-        setArray(allocateArray(initialCapacity));
-        setIndex(0, 0);
+        setArray(allocateArray(initialCapacity));   // 堆内分配是通过数组实现的 这里直接创建一个新数据设置到成员变量
+        setIndex(0, 0); // 设置readerIndex和writerIndex
     }
 
     /**
      * Creates a new heap buffer with an existing byte array.
      *
      * @param initialArray the initial underlying byte array
-     * @param maxCapacity the max capacity of the underlying byte array
+     * @param maxCapacity  the max capacity of the underlying byte array
      */
     protected UnpooledHeapByteBuf(ByteBufAllocator alloc, byte[] initialArray, int maxCapacity) {
         super(maxCapacity);
@@ -247,7 +247,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
         checkSrcIndex(index, length, srcIndex, src.capacity());
         if (src.hasMemoryAddress()) {
             PlatformDependent.copyMemory(src.memoryAddress() + srcIndex, array, index, length);
-        } else  if (src.hasArray()) {
+        } else if (src.hasArray()) {
             setBytes(index, src.array(), src.arrayOffset() + srcIndex, length);
         } else {
             src.getBytes(srcIndex, array, index, length);
@@ -308,7 +308,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
     @Override
     public ByteBuffer[] nioBuffers(int index, int length) {
-        return new ByteBuffer[] { nioBuffer(index, length) };
+        return new ByteBuffer[]{nioBuffer(index, length)};
     }
 
     @Override
@@ -458,7 +458,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setMedium(int index, int   value) {
+    public ByteBuf setMedium(int index, int value) {
         ensureAccessible();
         _setMedium(index, value);
         return this;
@@ -470,7 +470,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setMediumLE(int index, int   value) {
+    public ByteBuf setMediumLE(int index, int value) {
         ensureAccessible();
         _setMediumLE(index, value);
         return this;
@@ -482,7 +482,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setInt(int index, int   value) {
+    public ByteBuf setInt(int index, int value) {
         ensureAccessible();
         _setInt(index, value);
         return this;
@@ -494,7 +494,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setIntLE(int index, int   value) {
+    public ByteBuf setIntLE(int index, int value) {
         ensureAccessible();
         _setIntLE(index, value);
         return this;
@@ -506,7 +506,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setLong(int index, long  value) {
+    public ByteBuf setLong(int index, long value) {
         ensureAccessible();
         _setLong(index, value);
         return this;
@@ -518,7 +518,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
     }
 
     @Override
-    public ByteBuf setLongLE(int index, long  value) {
+    public ByteBuf setLongLE(int index, long value) {
         ensureAccessible();
         _setLongLE(index, value);
         return this;

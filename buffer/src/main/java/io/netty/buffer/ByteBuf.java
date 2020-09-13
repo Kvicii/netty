@@ -73,6 +73,12 @@ import java.nio.charset.UnsupportedCharsetException;
  *      0      <=      readerIndex   <=   writerIndex    <=    capacity
  * </pre>
  *
+ * <p>
+ * 对于ByteBuf而言:
+ * 0 - readerIndex之间的空间是无效的
+ * readerIndex - writerIndex之间的空间是可读的数据
+ * writerIndex - capacity之间的空间是空闲的 可以写的数据
+ *
  * <h4>Readable bytes (the actual content)</h4>
  * <p>
  * This segment is where the actual data is stored.  Any operation whose name

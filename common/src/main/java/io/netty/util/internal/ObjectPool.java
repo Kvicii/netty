@@ -42,6 +42,7 @@ public abstract class ObjectPool<T> {
     public interface Handle<T> {
         /**
          * Recycle the {@link Object} if possible and so make it ready to be reused.
+         * 回收ByteBuf
          */
         void recycle(T self);
     }

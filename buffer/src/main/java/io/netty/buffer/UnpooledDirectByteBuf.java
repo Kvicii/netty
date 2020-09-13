@@ -38,7 +38,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
     private final ByteBufAllocator alloc;
-
+    // 该ByteBuf的实现是DirectByteBuffer
     ByteBuffer buffer; // accessed by UnpooledUnsafeNoCleanerDirectByteBuf.reallocateDirect()
     private ByteBuffer tmpNioBuf;
     private int capacity;

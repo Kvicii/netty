@@ -25,112 +25,111 @@ import java.util.PriorityQueue;
 
 /**
  * Description of algorithm for PageRun/PoolSubpage allocation from PoolChunk
- *
+ * <p>
  * Notation: The following terms are important to understand the code
  * > page  - a page is the smallest unit of memory chunk that can be allocated
  * > run   - a run is a collection of pages
  * > chunk - a chunk is a collection of runs
  * > in this code chunkSize = maxPages * pageSize
- *
+ * <p>
  * To begin we allocate a byte array of size = chunkSize
  * Whenever a ByteBuf of given size needs to be created we search for the first position
  * in the byte array that has enough empty space to accommodate the requested size and
  * return a (long) handle that encodes this offset information, (this memory segment is then
  * marked as reserved so it is always used by exactly one ByteBuf and no more)
- *
+ * <p>
  * For simplicity all sizes are normalized according to {@link PoolArena#size2SizeIdx(int)} method.
  * This ensures that when we request for memory segments of size > pageSize the normalizedCapacity
  * equals the next nearest size in {@link SizeClasses}.
- *
- *
- *  A chunk has the following layout:
- *
- *     /-----------------\
- *     | run             |
- *     |                 |
- *     |                 |
- *     |-----------------|
- *     | run             |
- *     |                 |
- *     |-----------------|
- *     | unalloctated    |
- *     | (freed)         |
- *     |                 |
- *     |-----------------|
- *     | subpage         |
- *     |-----------------|
- *     | unallocated     |
- *     | (freed)         |
- *     | ...             |
- *     | ...             |
- *     | ...             |
- *     |                 |
- *     |                 |
- *     |                 |
- *     \-----------------/
- *
- *
+ * <p>
+ * <p>
+ * A chunk has the following layout:
+ * <p>
+ * /-----------------\
+ * | run             |
+ * |                 |
+ * |                 |
+ * |-----------------|
+ * | run             |
+ * |                 |
+ * |-----------------|
+ * | unalloctated    |
+ * | (freed)         |
+ * |                 |
+ * |-----------------|
+ * | subpage         |
+ * |-----------------|
+ * | unallocated     |
+ * | (freed)         |
+ * | ...             |
+ * | ...             |
+ * | ...             |
+ * |                 |
+ * |                 |
+ * |                 |
+ * \-----------------/
+ * <p>
+ * <p>
  * handle:
  * -------
  * a handle is a long number, the bit layout of a run looks like:
- *
+ * <p>
  * oooooooo ooooooos ssssssss ssssssue bbbbbbbb bbbbbbbb bbbbbbbb bbbbbbbb
- *
+ * <p>
  * o: runOffset (page offset in the chunk), 15bit
  * s: size (number of pages) of this run, 15bit
  * u: isUsed?, 1bit
  * e: isSubpage?, 1bit
  * b: bitmapIdx of subpage, zero if it's not subpage, 32bit
- *
+ * <p>
  * runsAvailMap:
  * ------
  * a map which manages all runs (used and not in used).
  * For each run, the first runOffset and last runOffset are stored in runsAvailMap.
  * key: runOffset
  * value: handle
- *
+ * <p>
  * runsAvail:
  * ----------
  * an array of {@link PriorityQueue}.
  * Each queue manages same size of runs.
  * Runs are sorted by offset, so that we always allocate runs with smaller offset.
- *
- *
+ * <p>
+ * <p>
  * Algorithm:
  * ----------
- *
- *   As we allocate runs, we update values stored in runsAvailMap and runsAvail so that the property is maintained.
- *
+ * <p>
+ * As we allocate runs, we update values stored in runsAvailMap and runsAvail so that the property is maintained.
+ * <p>
  * Initialization -
- *  In the beginning we store the initial run which is the whole chunk.
- *  The initial run:
- *  runOffset = 0
- *  size = chunkSize
- *  isUsed = no
- *  isSubpage = no
- *  bitmapIdx = 0
- *
- *
+ * In the beginning we store the initial run which is the whole chunk.
+ * The initial run:
+ * runOffset = 0
+ * size = chunkSize
+ * isUsed = no
+ * isSubpage = no
+ * bitmapIdx = 0
+ * <p>
+ * <p>
  * Algorithm: [allocateRun(size)]
  * ----------
  * 1) find the first avail run using in runsAvails according to size
  * 2) if pages of run is larger than request pages then split it, and save the tailing run
- *    for later using
- *
+ * for later using
+ * <p>
  * Algorithm: [allocateSubpage(size)]
  * ----------
  * 1) find a not full subpage according to size.
- *    if it already exists just return, otherwise allocate a new PoolSubpage and call init()
- *    note that this subpage object is added to subpagesPool in the PoolArena when we init() it
+ * if it already exists just return, otherwise allocate a new PoolSubpage and call init()
+ * note that this subpage object is added to subpagesPool in the PoolArena when we init() it
  * 2) call subpage.allocate()
- *
+ * <p>
  * Algorithm: [free(handle, length, nioBuffer)]
  * ----------
  * 1) if it is a subpage, return the slab back into this subpage
  * 2) if the subpage is not used or it is a run, then start free this run
  * 3) merge continuous avail runs
  * 4) save the merged run
- *
  */
 final class PoolChunk<T> implements PoolChunkMetric {
 
@@ -208,7 +207,9 @@ final class PoolChunk<T> implements PoolChunkMetric {
         cachedNioBuffers = new ArrayDeque<ByteBuffer>(8);
     }
 
-    /** Creates a special chunk that is not pooled. */
+    /**
+     * Creates a special chunk that is not pooled.
+     */
     PoolChunk(PoolArena<T> arena, T memory, int size, int offset) {
         unpooled = true;
         this.arena = arena;
@@ -317,7 +318,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
             }
         }
 
-        ByteBuffer nioBuffer = cachedNioBuffers != null? cachedNioBuffers.pollLast() : null;
+        ByteBuffer nioBuffer = cachedNioBuffers != null ? cachedNioBuffers.pollLast() : null;
         initBuf(buf, nioBuffer, handle, reqCapacity, cache);
         return true;
     }
@@ -418,7 +419,6 @@ final class PoolChunk<T> implements PoolChunkMetric {
      * subpage pool in the PoolArena that owns this PoolChunk
      *
      * @param sizeIdx sizeIdx of normalized size
-     *
      * @return index in memoryMap
      */
     private long allocateSubpage(int sizeIdx) {
@@ -438,7 +438,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
             int elemSize = arena.sizeIdx2size(sizeIdx);
 
             PoolSubpage<T> subpage = new PoolSubpage<T>(head, this, pageShifts, runOffset,
-                               runSize(pageShifts, runHandle), elemSize);
+                    runSize(pageShifts, runHandle), elemSize);
 
             subpages[runOffset] = subpage;
             return subpage.allocate();
@@ -488,7 +488,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         }
 
         if (nioBuffer != null && cachedNioBuffers != null &&
-            cachedNioBuffers.size() < PooledByteBufAllocator.DEFAULT_MAX_CACHED_BYTEBUFFERS_PER_CHUNK) {
+                cachedNioBuffers.size() < PooledByteBufAllocator.DEFAULT_MAX_CACHED_BYTEBUFFERS_PER_CHUNK) {
             cachedNioBuffers.offer(nioBuffer);
         }
     }
@@ -498,7 +498,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     private long collapsePast(long handle) {
-        for (;;) {
+        for (; ; ) {
             int runOffset = runOffset(handle);
             int runPages = runPages(handle);
 
@@ -522,7 +522,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     private long collapseNext(long handle) {
-        for (;;) {
+        for (; ; ) {
             int runOffset = runOffset(handle);
             int runPages = runPages(handle);
 
@@ -547,15 +547,15 @@ final class PoolChunk<T> implements PoolChunkMetric {
 
     private static long toRunHandle(int runOffset, int runPages, int inUsed) {
         return (long) runOffset << RUN_OFFSET_SHIFT
-               | (long) runPages << SIZE_SHIFT
-               | (long) inUsed << IS_USED_SHIFT;
+                | (long) runPages << SIZE_SHIFT
+                | (long) inUsed << IS_USED_SHIFT;
     }
 
     void initBuf(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity,
                  PoolThreadCache threadCache) {
         if (isRun(handle)) {
             buf.init(this, nioBuffer, handle, runOffset(handle) << pageShifts,
-                     reqCapacity, runSize(pageShifts, handle), arena.parent.threadCache());
+                    reqCapacity, runSize(pageShifts, handle), arena.parent.threadCache());
         } else {
             initBufWithSubpage(buf, nioBuffer, handle, reqCapacity, threadCache);
         }
@@ -571,8 +571,8 @@ final class PoolChunk<T> implements PoolChunkMetric {
         assert reqCapacity <= s.elemSize;
 
         buf.init(this, nioBuffer, handle,
-                 (runOffset << pageShifts) + bitmapIdx * s.elemSize + offset,
-                 reqCapacity, s.elemSize, threadCache);
+                (runOffset << pageShifts) + bitmapIdx * s.elemSize + offset,
+                reqCapacity, s.elemSize, threadCache);
     }
 
     @Override

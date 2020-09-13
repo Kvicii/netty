@@ -17,13 +17,10 @@
 package io.netty.buffer;
 
 
-import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
-
 import io.netty.buffer.PoolArena.SizeClass;
 import io.netty.util.internal.MathUtil;
 import io.netty.util.internal.ObjectPool;
 import io.netty.util.internal.ObjectPool.Handle;
-import io.netty.util.internal.ObjectPool.ObjectCreator;
 import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
@@ -32,22 +29,33 @@ import java.nio.ByteBuffer;
 import java.util.Queue;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
+
 /**
  * Acts a Thread cache for allocations. This implementation is moduled after
  * <a href="http://people.freebsd.org/~jasone/jemalloc/bsdcan2006/jemalloc.pdf">jemalloc</a> and the descripted
  * technics of
  * <a href="https://www.facebook.com/notes/facebook-engineering/scalable-memory-allocation-using-jemalloc/480222803919">
  * Scalable memory allocation using jemalloc</a>.
+ * <p>
+ * PoolThreadCache作为FastThreadLocal泛型 意味着每一个线程都会有一个PoolThreadCache对象 即每一个线程都会有 small normal 类型的缓存 也都会有HeapArena和DirectArena
+ * PoolThreadCache除了可以在Arena这块内存上直接分配内存 还可以通过它维护的ByteBuf缓冲区列表进行分配
  */
 final class PoolThreadCache {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(PoolThreadCache.class);
     private static final int INTEGER_SIZE_MINUS_ONE = Integer.SIZE - 1;
 
+    /**
+     * Arena 和 MemoryRegionCache 不一样的地方是 MemoryRegionCache 是直接缓存了一块连续的内存 Arena 是直接开辟了一块连续的内存
+     */
     final PoolArena<byte[]> heapArena;
     final PoolArena<ByteBuffer> directArena;
 
     // Hold the caches for the different size classes, which are tiny, small and normal.
+    // 无论是small还是normal都是一个MemoryRegionCache数组 分为Heap和Direct类型
+    // 对于small而言 各索引对应的值分别为 512B -> 1K -> 2K -> 4K
+    // 对于normal而言 各索引对应的值分别为 8K -> 16K -> 32K
     private final MemoryRegionCache<byte[]>[] smallSubPageHeapCaches;
     private final MemoryRegionCache<ByteBuffer>[] smallSubPageDirectCaches;
     private final MemoryRegionCache<byte[]>[] normalHeapCaches;
@@ -64,6 +72,16 @@ final class PoolThreadCache {
     // TODO: Test if adding padding helps under contention
     //private long pad0, pad1, pad2, pad3, pad4, pad5, pad6, pad7;
 
+    /**
+     * smallCacheSize 和 normalCacheSize是在内存分配器PooledByteBufAllocator中维护的 默认值分别是256和64
+     *
+     * @param heapArena
+     * @param directArena
+     * @param smallCacheSize
+     * @param normalCacheSize
+     * @param maxCachedBufferCapacity
+     * @param freeSweepAllocationThreshold
+     */
     PoolThreadCache(PoolArena<byte[]> heapArena, PoolArena<ByteBuffer> directArena,
                     int smallCacheSize, int normalCacheSize, int maxCachedBufferCapacity,
                     int freeSweepAllocationThreshold) {
@@ -112,8 +130,15 @@ final class PoolThreadCache {
         }
     }
 
-    private static <T> MemoryRegionCache<T>[] createSubPageCaches(
-            int cacheSize, int numCaches) {
+    /**
+     * 创建MemoryRegionCache
+     *
+     * @param cacheSize
+     * @param numCaches
+     * @param <T>
+     * @return
+     */
+    private static <T> MemoryRegionCache<T>[] createSubPageCaches(int cacheSize, int numCaches) {
         if (cacheSize > 0 && numCaches > 0) {
             @SuppressWarnings("unchecked")
             MemoryRegionCache<T>[] cache = new MemoryRegionCache[numCaches];
@@ -153,6 +178,7 @@ final class PoolThreadCache {
      * Try to allocate a small buffer out of the cache. Returns {@code true} if successful {@code false} otherwise
      */
     boolean allocateSmall(PoolArena<?> area, PooledByteBuf<?> buf, int reqCapacity, int sizeIdx) {
+        // cacheForSmall根据索引找到对应的MemoryRegionCache
         return allocate(cacheForSmall(area, sizeIdx), buf, reqCapacity);
     }
 
@@ -163,14 +189,15 @@ final class PoolThreadCache {
         return allocate(cacheForNormal(area, normCapacity), buf, reqCapacity);
     }
 
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private boolean allocate(MemoryRegionCache<?> cache, PooledByteBuf buf, int reqCapacity) {
         if (cache == null) {
             // no cache found so just return false here
             return false;
         }
+        // 已经找到了对应的MemoryRegionCache节点 使用节点内部的queue进行分配
         boolean allocated = cache.allocate(buf, reqCapacity, this);
-        if (++ allocations >= freeSweepAllocationThreshold) {
+        if (++allocations >= freeSweepAllocationThreshold) {
             allocations = 0;
             trim();
         }
@@ -181,7 +208,7 @@ final class PoolThreadCache {
      * Add {@link PoolChunk} and {@code handle} to the cache if there is enough room.
      * Returns {@code true} if it fit into the cache {@code false} otherwise.
      */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+    @SuppressWarnings({"unchecked", "rawtypes"})
     boolean add(PoolArena<?> area, PoolChunk chunk, ByteBuffer nioBuffer,
                 long handle, int normCapacity, SizeClass sizeClass) {
         int sizeIdx = area.size2SizeIdx(normCapacity);
@@ -194,12 +221,12 @@ final class PoolThreadCache {
 
     private MemoryRegionCache<?> cache(PoolArena<?> area, int sizeIdx, SizeClass sizeClass) {
         switch (sizeClass) {
-        case Normal:
-            return cacheForNormal(area, sizeIdx);
-        case Small:
-            return cacheForSmall(area, sizeIdx);
-        default:
-            throw new Error();
+            case Normal:
+                return cacheForNormal(area, sizeIdx);
+            case Small:
+                return cacheForSmall(area, sizeIdx);
+            default:
+                throw new Error();
         }
     }
 
@@ -214,7 +241,7 @@ final class PoolThreadCache {
     }
 
     /**
-     *  Should be called if the Thread that uses this cache is about to exist to release resources out of the cache
+     * Should be called if the Thread that uses this cache is about to exist to release resources out of the cache
      */
     void free(boolean finalizer) {
         // As free() may be called either by the finalizer or by FastThreadLocal.onRemoval(...) we need to ensure
@@ -246,7 +273,7 @@ final class PoolThreadCache {
         }
 
         int numFreed = 0;
-        for (MemoryRegionCache<?> c: caches) {
+        for (MemoryRegionCache<?> c : caches) {
             numFreed += free(c, finalizer);
         }
         return numFreed;
@@ -270,7 +297,7 @@ final class PoolThreadCache {
         if (caches == null) {
             return;
         }
-        for (MemoryRegionCache<?> c: caches) {
+        for (MemoryRegionCache<?> c : caches) {
             trim(c);
         }
     }
@@ -335,15 +362,23 @@ final class PoolThreadCache {
         }
     }
 
+    /**
+     * 同一个size的ByteBuf有哪些可以直接利用
+     *
+     * @param <T>
+     */
     private abstract static class MemoryRegionCache<T> {
         private final int size;
+        // 存储每种size的ByteBuf
         private final Queue<Entry<T>> queue;
+        // 分为Small 和 Normal规格
         private final SizeClass sizeClass;
         private int allocations;
 
         MemoryRegionCache(int size, SizeClass sizeClass) {
-            this.size = MathUtil.safeFindNextPositivePowerOfTwo(size);
-            queue = PlatformDependent.newFixedMpscQueue(this.size);
+            this.size = MathUtil.safeFindNextPositivePowerOfTwo(size);  // 规格化 查找下一个 >= 当前size的2的幂次方的一个数
+            // queue是MemoryRegionCache中的数据结构 Entity中包含了chunk和handle
+            queue = PlatformDependent.newFixedMpscQueue(this.size); // 队列中包含了size个内存规格的缓存
             this.sizeClass = sizeClass;
         }
 
@@ -372,15 +407,17 @@ final class PoolThreadCache {
          * Allocate something out of the cache if possible and remove the entry from the cache.
          */
         public final boolean allocate(PooledByteBuf<T> buf, int reqCapacity, PoolThreadCache threadCache) {
-            Entry<T> entry = queue.poll();
+            Entry<T> entry = queue.poll();  // 从队列中弹出一个Entry
             if (entry == null) {
                 return false;
             }
+            // 通过Entry的chunk和handle给ByteBuf初始化
             initBuf(entry.chunk, entry.nioBuffer, entry.handle, buf, reqCapacity, threadCache);
+            // 将弹出的Entry放入对象池中进行复用
             entry.recycle();
 
             // allocations is not thread-safe which is fine as this is only called from the same thread all time.
-            ++ allocations;
+            ++allocations;
             return true;
         }
 
@@ -418,8 +455,8 @@ final class PoolThreadCache {
             }
         }
 
-        @SuppressWarnings({ "unchecked", "rawtypes" })
-        private  void freeEntry(Entry entry, boolean finalizer) {
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        private void freeEntry(Entry entry, boolean finalizer) {
             PoolChunk chunk = entry.chunk;
             long handle = entry.handle;
             ByteBuffer nioBuffer = entry.nioBuffer;
@@ -437,6 +474,7 @@ final class PoolThreadCache {
             final Handle<Entry<?>> recyclerHandle;
             PoolChunk<T> chunk;
             ByteBuffer nioBuffer;
+            // 通过handle可以定位chunk中一段连续的内存
             long handle = -1;
             int normCapacity;
 
@@ -445,9 +483,10 @@ final class PoolThreadCache {
             }
 
             void recycle() {
+                // chunk设置为null handle设置为-1表示不指向任何一块内存
                 chunk = null;
-                nioBuffer = null;
                 handle = -1;
+                nioBuffer = null;
                 recyclerHandle.recycle(this);
             }
         }
@@ -463,12 +502,6 @@ final class PoolThreadCache {
         }
 
         @SuppressWarnings("rawtypes")
-        private static final ObjectPool<Entry> RECYCLER = ObjectPool.newPool(new ObjectCreator<Entry>() {
-            @SuppressWarnings("unchecked")
-            @Override
-            public Entry newObject(Handle<Entry> handle) {
-                return new Entry(handle);
-            }
-        });
+        private static final ObjectPool<Entry> RECYCLER = ObjectPool.newPool(handle -> new Entry(handle));
     }
 }

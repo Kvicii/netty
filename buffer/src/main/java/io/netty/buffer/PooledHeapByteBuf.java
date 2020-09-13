@@ -16,7 +16,6 @@ package io.netty.buffer;
 
 import io.netty.util.internal.ObjectPool;
 import io.netty.util.internal.ObjectPool.Handle;
-import io.netty.util.internal.ObjectPool.ObjectCreator;
 import io.netty.util.internal.PlatformDependent;
 
 import java.io.IOException;
@@ -27,12 +26,7 @@ import java.nio.ByteBuffer;
 class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
 
     private static final ObjectPool<PooledHeapByteBuf> RECYCLER = ObjectPool.newPool(
-            new ObjectCreator<PooledHeapByteBuf>() {
-        @Override
-        public PooledHeapByteBuf newObject(Handle<PooledHeapByteBuf> handle) {
-            return new PooledHeapByteBuf(handle, 0);
-        }
-    });
+            handle -> new PooledHeapByteBuf(handle, 0));
 
     static PooledHeapByteBuf newInstance(int maxCapacity) {
         PooledHeapByteBuf buf = RECYCLER.get();
@@ -145,7 +139,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
     }
 
     @Override
-    protected void _setMedium(int index, int   value) {
+    protected void _setMedium(int index, int value) {
         HeapByteBufUtil.setMedium(memory, idx(index), value);
     }
 
@@ -155,7 +149,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
     }
 
     @Override
-    protected void _setInt(int index, int   value) {
+    protected void _setInt(int index, int value) {
         HeapByteBufUtil.setInt(memory, idx(index), value);
     }
 
@@ -165,7 +159,7 @@ class PooledHeapByteBuf extends PooledByteBuf<byte[]> {
     }
 
     @Override
-    protected void _setLong(int index, long  value) {
+    protected void _setLong(int index, long value) {
         HeapByteBufUtil.setLong(memory, idx(index), value);
     }
 

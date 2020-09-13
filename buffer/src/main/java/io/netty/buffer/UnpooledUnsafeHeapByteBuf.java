@@ -28,7 +28,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
      * Creates a new heap buffer with a newly allocated byte array.
      *
      * @param initialCapacity the initial capacity of the underlying byte array
-     * @param maxCapacity the max capacity of the underlying byte array
+     * @param maxCapacity     the max capacity of the underlying byte array
      */
     public UnpooledUnsafeHeapByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
         super(alloc, initialCapacity, maxCapacity);
@@ -175,7 +175,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setMedium(int index, int   value) {
+    public ByteBuf setMedium(int index, int value) {
         checkIndex(index, 3);
         _setMedium(index, value);
         return this;
@@ -187,7 +187,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setMediumLE(int index, int   value) {
+    public ByteBuf setMediumLE(int index, int value) {
         checkIndex(index, 3);
         _setMediumLE(index, value);
         return this;
@@ -199,7 +199,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setInt(int index, int   value) {
+    public ByteBuf setInt(int index, int value) {
         checkIndex(index, 4);
         _setInt(index, value);
         return this;
@@ -211,7 +211,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setIntLE(int index, int   value) {
+    public ByteBuf setIntLE(int index, int value) {
         checkIndex(index, 4);
         _setIntLE(index, value);
         return this;
@@ -223,7 +223,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setLong(int index, long  value) {
+    public ByteBuf setLong(int index, long value) {
         checkIndex(index, 8);
         _setLong(index, value);
         return this;
@@ -235,7 +235,7 @@ public class UnpooledUnsafeHeapByteBuf extends UnpooledHeapByteBuf {
     }
 
     @Override
-    public ByteBuf setLongLE(int index, long  value) {
+    public ByteBuf setLongLE(int index, long value) {
         checkIndex(index, 8);
         _setLongLE(index, value);
         return this;
