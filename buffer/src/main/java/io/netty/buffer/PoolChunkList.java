@@ -18,14 +18,14 @@ package io.netty.buffer;
 
 import io.netty.util.internal.StringUtil;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import static java.lang.Math.*;
-
-import java.nio.ByteBuffer;
+import static java.lang.Math.max;
+import static java.lang.Math.min;
 
 final class PoolChunkList<T> implements PoolChunkListMetric {
     private static final Iterator<PoolChunkMetric> EMPTY_METRICS = Collections.<PoolChunkMetric>emptyList().iterator();
@@ -88,7 +88,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
         // As an example:
         // - If a PoolChunkList has minUsage == 25 we are allowed to allocate at most 75% of the chunkSize because
         //   this is the maximum amount available in any PoolChunk in this PoolChunkList.
-        return  (int) (chunkSize * (100L - minUsage) / 100L);
+        return (int) (chunkSize * (100L - minUsage) / 100L);
     }
 
     void prevList(PoolChunkList<T> prevList) {
@@ -104,9 +104,9 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
             return false;
         }
 
-        for (PoolChunk<T> cur = head; cur != null; cur = cur.next) {
+        for (PoolChunk<T> cur = head; cur != null; cur = cur.next) {    // 从Head节点开始遍历Chunk
             if (cur.allocate(buf, reqCapacity, sizeIdx, threadCache)) {
-                if (cur.freeBytes <= freeMinThreshold) {
+                if (cur.freeBytes <= freeMinThreshold) {    // 当前Chunk可用空间 <= 空闲阈值 从当前Chunk的双线链表中移除 加入到下一个ChunkList
                     remove(cur);
                     nextList.add(cur);
                 }
@@ -213,8 +213,8 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
             if (head == null) {
                 return EMPTY_METRICS;
             }
-            List<PoolChunkMetric> metrics = new ArrayList<PoolChunkMetric>();
-            for (PoolChunk<T> cur = head;;) {
+            List<PoolChunkMetric> metrics = new ArrayList<>();
+            for (PoolChunk<T> cur = head; ; ) {
                 metrics.add(cur);
                 cur = cur.next;
                 if (cur == null) {
@@ -233,7 +233,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
                 return "none";
             }
 
-            for (PoolChunk<T> cur = head;;) {
+            for (PoolChunk<T> cur = head; ; ) {
                 buf.append(cur);
                 cur = cur.next;
                 if (cur == null) {
