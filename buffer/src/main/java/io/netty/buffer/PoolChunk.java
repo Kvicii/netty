@@ -196,7 +196,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         freeBytes = chunkSize;
 
         runsAvail = newRunsAvailqueueArray(maxPageIdx);
-        runsAvailMap = new IntObjectHashMap<Long>();
+        runsAvailMap = new IntObjectHashMap<>();
         subpages = new PoolSubpage[chunkSize >> pageShifts];
 
         //insert initial run, offset = 0, pages = chunkSize / pageSize
@@ -204,7 +204,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         long initHandle = (long) pages << SIZE_SHIFT;
         insertAvailRun(0, pages, initHandle);
 
-        cachedNioBuffers = new ArrayDeque<ByteBuffer>(8);
+        cachedNioBuffers = new ArrayDeque<>(8);
     }
 
     /**
@@ -228,7 +228,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private static PriorityQueue<Long>[] newRunsAvailqueueArray(int size) {
         PriorityQueue<Long>[] queueArray = new PriorityQueue[size];
         for (int i = 0; i < queueArray.length; i++) {
-            queueArray[i] = new PriorityQueue<Long>();
+            queueArray[i] = new PriorityQueue<>();
         }
         return queueArray;
     }
@@ -303,7 +303,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
         final long handle;
         if (sizeIdx <= arena.smallMaxSizeIdx) {
             // small
-            handle = allocateSubpage(sizeIdx);
+            handle = allocateSubpage(sizeIdx);  // 返回的handle表示Chunk中的第几个节点的第几个subpage 即一块内存中哪一块连续的内存
             if (handle < 0) {
                 return false;
             }
@@ -424,7 +424,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     private long allocateSubpage(int sizeIdx) {
         // Obtain the head of the PoolSubPage pool that is owned by the PoolArena and synchronize on it.
         // This is need as we may add it back and so alter the linked-list structure.
-        PoolSubpage<T> head = arena.findSubpagePoolHead(sizeIdx);
+        PoolSubpage<T> head = arena.findSubpagePoolHead(sizeIdx);   // 找到Arena节点
         synchronized (head) {
             //allocate a new run
             int runSize = calculateRunSize(sizeIdx);
@@ -437,11 +437,11 @@ final class PoolChunk<T> implements PoolChunkMetric {
             int runOffset = runOffset(runHandle);
             int elemSize = arena.sizeIdx2size(sizeIdx);
 
-            PoolSubpage<T> subpage = new PoolSubpage<T>(head, this, pageShifts, runOffset,
-                    runSize(pageShifts, runHandle), elemSize);
+            PoolSubpage<T> subpage = new PoolSubpage<>(head, this, pageShifts, runOffset,
+                    runSize(pageShifts, runHandle), elemSize);  // 创建一个subpage
 
-            subpages[runOffset] = subpage;
-            return subpage.allocate();
+            subpages[runOffset] = subpage;  // subpages是PoolChunk维护的 初始化PoolChunk时会初始化subpages 当分配一个subpage之后 对应的数组元素需要修改 表明当前节点是以subpage方式分配的
+            return subpage.allocate();  // subpage初始化完成之后 就可以基于subpage取出一个子page
         }
     }
 
@@ -564,7 +564,7 @@ final class PoolChunk<T> implements PoolChunkMetric {
     void initBufWithSubpage(PooledByteBuf<T> buf, ByteBuffer nioBuffer, long handle, int reqCapacity,
                             PoolThreadCache threadCache) {
         int runOffset = runOffset(handle);
-        int bitmapIdx = bitmapIdx(handle);
+        int bitmapIdx = bitmapIdx(handle);  // 分配SubPage时使用到的
 
         PoolSubpage<T> s = subpages[runOffset];
         assert s.doNotDestroy;

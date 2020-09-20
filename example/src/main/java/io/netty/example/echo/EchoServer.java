@@ -15,7 +15,6 @@
  */
 package io.netty.example.echo;
 
-import com.sun.corba.se.impl.presentation.rmi.ExceptionHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelFuture;

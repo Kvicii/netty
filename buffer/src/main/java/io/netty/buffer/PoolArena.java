@@ -176,7 +176,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         final boolean needsNormalAllocation;
         synchronized (head) {
             final PoolSubpage<T> s = head.next;
-            needsNormalAllocation = s == head;
+            needsNormalAllocation = s == head;  // 如果相等 表示头结点没有任何信息 指向自己
             if (!needsNormalAllocation) {
                 assert s.doNotDestroy && s.elemSize == sizeIdx2size(sizeIdx);
                 long handle = s.allocate();
@@ -208,6 +208,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
     // Method must be called inside synchronized(this) { ... } block
     private void allocateNormal(PooledByteBuf<T> buf, int reqCapacity, int sizeIdx, PoolThreadCache threadCache) {
+        // 尝试在ChunkList上进行分配 首次都是空的 无法分配 所以该逻辑不会被执行
         if (q050.allocate(buf, reqCapacity, sizeIdx, threadCache) ||
                 q025.allocate(buf, reqCapacity, sizeIdx, threadCache) ||
                 q000.allocate(buf, reqCapacity, sizeIdx, threadCache) ||
@@ -217,8 +218,8 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         }
 
         // Add a new chunk.
-        PoolChunk<T> c = newChunk(pageSize, nPSizes, pageShifts, chunkSize);
-        boolean success = c.allocate(buf, reqCapacity, sizeIdx, threadCache);
+        PoolChunk<T> c = newChunk(pageSize, nPSizes, pageShifts, chunkSize);    // 创建一个Chunk
+        boolean success = c.allocate(buf, reqCapacity, sizeIdx, threadCache);   // 从Chunk上分配一块内存 & 调用initBuf给ByteBuf进行初始化
         assert success;
         qInit.add(c);
     }
@@ -637,13 +638,13 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         protected PoolChunk<ByteBuffer> newChunk(int pageSize, int maxPageIdx,
                                                  int pageShifts, int chunkSize) {
             if (directMemoryCacheAlignment == 0) {
-                return new PoolChunk<ByteBuffer>(this,
+                return new PoolChunk<>(this,
                         allocateDirect(chunkSize), pageSize, pageShifts,
                         chunkSize, maxPageIdx, 0);
             }
             final ByteBuffer memory = allocateDirect(chunkSize
                     + directMemoryCacheAlignment);
-            return new PoolChunk<ByteBuffer>(this, memory, pageSize,
+            return new PoolChunk<>(this, memory, pageSize,
                     pageShifts, chunkSize, maxPageIdx,
                     offsetCacheLine(memory));
         }
@@ -651,12 +652,12 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         @Override
         protected PoolChunk<ByteBuffer> newUnpooledChunk(int capacity) {
             if (directMemoryCacheAlignment == 0) {
-                return new PoolChunk<ByteBuffer>(this,
+                return new PoolChunk<>(this,
                         allocateDirect(capacity), capacity, 0);
             }
             final ByteBuffer memory = allocateDirect(capacity
                     + directMemoryCacheAlignment);
-            return new PoolChunk<ByteBuffer>(this, memory, capacity,
+            return new PoolChunk<>(this, memory, capacity,
                     offsetCacheLine(memory));
         }
 

@@ -71,18 +71,18 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
     void init(PoolSubpage<T> head, int elemSize) {
         doNotDestroy = true;
         if (elemSize != 0) {
-            maxNumElems = numAvail = runSize / elemSize;
+            maxNumElems = numAvail = runSize / elemSize;    // 计算可分配的subpage数
             nextAvail = 0;
             bitmapLength = maxNumElems >>> 6;
             if ((maxNumElems & 63) != 0) {
                 bitmapLength++;
             }
 
-            for (int i = 0; i < bitmapLength; i++) {
+            for (int i = 0; i < bitmapLength; i++) {    // 通过bitmap标识哪个subpage已经被分配 0表示未分配 1表示已经分配
                 bitmap[i] = 0;
             }
         }
-        addToPool(head);
+        addToPool(head);   // 初始化完成一个SubPage之后 将subpage添加到该节点的双向链表中
     }
 
     /**
@@ -93,13 +93,13 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
             return -1;
         }
 
-        final int bitmapIdx = getNextAvail();
+        final int bitmapIdx = getNextAvail();   // 从位图中找到一个未被使用的子page
         int q = bitmapIdx >>> 6;
         int r = bitmapIdx & 63;
         assert (bitmap[q] >>> r & 1) == 0;
         bitmap[q] |= 1L << r;
 
-        if (--numAvail == 0) {
+        if (--numAvail == 0) {  // 如果可用的子page是0 移除掉子page
             removeFromPool();
         }
 
