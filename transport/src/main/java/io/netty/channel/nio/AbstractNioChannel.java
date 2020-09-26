@@ -22,6 +22,7 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.AbstractChannel;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelException;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.ConnectTimeoutException;
@@ -38,7 +39,6 @@ import java.nio.channels.ClosedChannelException;
 import java.nio.channels.ConnectionPendingException;
 import java.nio.channels.SelectableChannel;
 import java.nio.channels.SelectionKey;
-import java.nio.channels.ServerSocketChannel;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -50,13 +50,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     private static final InternalLogger logger =
             InternalLoggerFactory.getInstance(AbstractNioChannel.class);
 
-    // 该成员变量保存了服务端channel和客户端channel的一个底层JDK的channel
     private final SelectableChannel ch;
-    // 读 ACCEPT 或 READ 事件
     protected final int readInterestOp;
     volatile SelectionKey selectionKey;
     boolean readPending;
-    private final Runnable clearReadPendingRunnable = () -> clearReadPending0();
+    private final Runnable clearReadPendingRunnable = new Runnable() {
+        @Override
+        public void run() {
+            clearReadPending0();
+        }
+    };
 
     /**
      * The future of the current connection attempt.  If not null, subsequent
@@ -68,25 +71,23 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
     /**
      * Create a new instance
-     * <p>
-     * 服务端channel或客户端channel最终都要调用该构造函数进行成员变量的保存 设置channel非阻塞
      *
-     * @param parent         the parent {@link Channel} by which this instance was created. May be {@code null}
-     * @param ch             the underlying {@link SelectableChannel} on which it operates
-     * @param readInterestOp the ops to set to receive data from the {@link SelectableChannel}
+     * @param parent            the parent {@link Channel} by which this instance was created. May be {@code null}
+     * @param ch                the underlying {@link SelectableChannel} on which it operates
+     * @param readInterestOp    the ops to set to receive data from the {@link SelectableChannel}
      */
     protected AbstractNioChannel(Channel parent, SelectableChannel ch, int readInterestOp) {
         super(parent);
-        this.ch = ch;   // channel保存在成员变量
-        this.readInterestOp = readInterestOp;   // 客户端channel和服务端channel注册的事件是不同的: 服务端channel注册的事件时OP_ACCEPT 客户端channel注册的事件是OP_READ
+        this.ch = ch;
+        this.readInterestOp = readInterestOp;
         try {
-            ch.configureBlocking(false);    // 设置channel(包括客户端和服务端)非阻塞
+            ch.configureBlocking(false);
         } catch (IOException e) {
             try {
                 ch.close();
             } catch (IOException e2) {
                 logger.warn(
-                        "Failed to close a partially initialized socket.", e2);
+                            "Failed to close a partially initialized socket.", e2);
             }
 
             throw new ChannelException("Failed to enter non-blocking mode.", e);
@@ -140,7 +141,12 @@ public abstract class AbstractNioChannel extends AbstractChannel {
             if (eventLoop.inEventLoop()) {
                 setReadPending0(readPending);
             } else {
-                eventLoop.execute(() -> setReadPending0(readPending));
+                eventLoop.execute(new Runnable() {
+                    @Override
+                    public void run() {
+                        setReadPending0(readPending);
+                    }
+                });
             }
         } else {
             // Best effort if we are not registered yet clear readPending.
@@ -248,23 +254,29 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // Schedule connect timeout.
                     int connectTimeoutMillis = config().getConnectTimeoutMillis();
                     if (connectTimeoutMillis > 0) {
-                        connectTimeoutFuture = eventLoop().schedule(() -> {
-                            ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;
-                            ConnectTimeoutException cause =
-                                    new ConnectTimeoutException("connection timed out: " + remoteAddress);
-                            if (connectPromise != null && connectPromise.tryFailure(cause)) {
-                                close(voidPromise());
+                        connectTimeoutFuture = eventLoop().schedule(new Runnable() {
+                            @Override
+                            public void run() {
+                                ChannelPromise connectPromise = AbstractNioChannel.this.connectPromise;
+                                if (connectPromise != null && !connectPromise.isDone()
+                                        && connectPromise.tryFailure(new ConnectTimeoutException(
+                                                "connection timed out: " + remoteAddress))) {
+                                    close(voidPromise());
+                                }
                             }
                         }, connectTimeoutMillis, TimeUnit.MILLISECONDS);
                     }
 
-                    promise.addListener((ChannelFutureListener) future -> {
-                        if (future.isCancelled()) {
-                            if (connectTimeoutFuture != null) {
-                                connectTimeoutFuture.cancel(false);
+                    promise.addListener(new ChannelFutureListener() {
+                        @Override
+                        public void operationComplete(ChannelFuture future) throws Exception {
+                            if (future.isCancelled()) {
+                                if (connectTimeoutFuture != null) {
+                                    connectTimeoutFuture.cancel(false);
+                                }
+                                connectPromise = null;
+                                close(voidPromise());
                             }
-                            connectPromise = null;
-                            close(voidPromise());
                         }
                     });
                 }
@@ -363,21 +375,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     @Override
     protected void doRegister() throws Exception {
         boolean selected = false;
-        for (; ; ) {
+        for (;;) {
             try {
-                logger.info("register server socket channel to selector, ops:{}", 0);
-                /**
-                 * 调用JDK底层的注册操作完成将channel绑定到selector的操作
-                 * 将NioServerSocketChannel/NioSocketChannel绑定到当前EventLoop的Selector上
-                 * ops = 0说明此时并未接收连接(还没有bind) 此时没有任何事件 只是将channel绑定到selector上去
-                 * EventLoop轮询Selector中的事件做处理 处理的时候拿着attachment(this代表了NioServerSocketChannel)去做处理
-                 * 后续selector轮询JDK channel上的事件 一旦事件触发取出attachment(即NioServerSocketChannel)做事件的传播
-                 *
-                 * 对于服务端启动来说 反射创建的 NioServerSocketChannel 底层也是使用的 JDK 的 Channel 也就是这里的 javaChannel 的返回值
-                 * this 就是 NioServerSocketChannel/NioSocketChannel
-                 * 这行代码的语义是 使用的 jdk 的 channel 的原生的 register方法来把 Netty 领域的 NioServerSocketChannel 注册到 jdk 领域的 selector 上去
-                 * ops == 0 代表不关心任何事件
-                 */
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
                 return;
             } catch (CancelledKeyException e) {
@@ -396,42 +395,23 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     }
 
     @Override
-    protected void doDeregister() {
+    protected void doDeregister() throws Exception {
         eventLoop().cancel(selectionKey());
     }
 
-    /**
-     * ServerSocketChannel的端口已经绑定成功了 此时需要告诉Selector关注一个OP_ACCEPT事件
-     * 一旦Selector轮询到OP_ACCEPT事件就把该事件交给netty处理
-     * <p>
-     * 绑定accept事件的过程就是: 当ServerSocketChannel绑定端口完成之后 触发一个channelActive事件 ->
-     * 触发channelRead事件 -> 对于ServerSocketChannel而言就是可以读了 -> 读什么? -> 读ServerSocketChannel的一个新的连接
-     *
-     * @throws Exception
-     */
     @Override
     protected void doBeginRead() throws Exception {
-        /**
-         * Channel.read() or ChannelHandlerContext.read() was called
-         * ServerSocketChannel注册到Selector时返回的SelectionKey:
-         * {@link AbstractNioChannel#doRegister()}
-         */
-        final SelectionKey selectionKey = this.selectionKey;    // 获取SelectionKey感兴趣的事件
+        // Channel.read() or ChannelHandlerContext.read() was called
+        final SelectionKey selectionKey = this.selectionKey;
         if (!selectionKey.isValid()) {
             return;
         }
 
         readPending = true;
 
-        final int interestOps = selectionKey.interestOps(); // socket连接建立时参数readInterestOp的值为1 为接收数据做好了准备
-        /**
-         * ServerSocketChannel注册时interestOps返回0 判断是否开启了readInterestOp 没有则监听readInterestOp
-         * 对于ServerSocketChannel readInterestOp是一个accept事件 是在NioServerSocketChannel的构造函数中传入OP_ACCEPT事件设置的:
-         * {@link io.netty.channel.socket.nio.NioServerSocketChannel#NioServerSocketChannel(ServerSocketChannel)}
-         */
+        final int interestOps = selectionKey.interestOps();
         if ((interestOps & readInterestOp) == 0) {
-            logger.info("register OP_ACCEPT, readInterestOp:{}", readInterestOp);
-            selectionKey.interestOps(interestOps | readInterestOp); // 取 或 代表 已经注册了连接(accept)的事件 此时再将读事件添加上去
+            selectionKey.interestOps(interestOps | readInterestOp);
         }
     }
 
