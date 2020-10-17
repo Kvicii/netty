@@ -89,105 +89,105 @@ import io.netty.util.concurrent.EventExecutor;
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
-    /**
-     * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
-     * <p>
-     * pipeline当前节点所属的channel
-     */
-    Channel channel();
+	/**
+	 * Return the {@link Channel} which is bound to the {@link ChannelHandlerContext}.
+	 * <p>
+	 * pipeline当前节点所属的channel
+	 */
+	Channel channel();
 
-    /**
-     * Returns the {@link EventExecutor} which is used to execute an arbitrary task.
-     * <p>
-     * 哪一个NioEventLoop最终会执行到该节点
-     */
-    EventExecutor executor();
+	/**
+	 * Returns the {@link EventExecutor} which is used to execute an arbitrary task.
+	 * <p>
+	 * 哪一个NioEventLoop最终会执行到该节点
+	 */
+	EventExecutor executor();
 
-    /**
-     * The unique name of the {@link ChannelHandlerContext}.The name was used when then {@link ChannelHandler}
-     * was added to the {@link ChannelPipeline}. This name can also be used to access the registered
-     * {@link ChannelHandler} from the {@link ChannelPipeline}.
-     * <p>
-     * 业务处理器名称
-     */
-    String name();
+	/**
+	 * The unique name of the {@link ChannelHandlerContext}.The name was used when then {@link ChannelHandler}
+	 * was added to the {@link ChannelPipeline}. This name can also be used to access the registered
+	 * {@link ChannelHandler} from the {@link ChannelPipeline}.
+	 * <p>
+	 * 业务处理器名称
+	 */
+	String name();
 
-    /**
-     * The {@link ChannelHandler} that is bound this {@link ChannelHandlerContext}.
-     * <p>
-     * 业务逻辑处理器
-     */
-    ChannelHandler handler();
+	/**
+	 * The {@link ChannelHandler} that is bound this {@link ChannelHandlerContext}.
+	 * <p>
+	 * 业务逻辑处理器
+	 */
+	ChannelHandler handler();
 
-    /**
-     * Return {@code true} if the {@link ChannelHandler} which belongs to this context was removed
-     * from the {@link ChannelPipeline}. Note that this method is only meant to be called from with in the
-     * {@link EventLoop}.
-     * <p>
-     * 节点是否已被移除
-     */
-    boolean isRemoved();
+	/**
+	 * Return {@code true} if the {@link ChannelHandler} which belongs to this context was removed
+	 * from the {@link ChannelPipeline}. Note that this method is only meant to be called from with in the
+	 * {@link EventLoop}.
+	 * <p>
+	 * 节点是否已被移除
+	 */
+	boolean isRemoved();
 
-    /*一系列事件的传播 包含Inbound和Outbound*/
-    @Override
-    ChannelHandlerContext fireChannelRegistered();
+	/*一系列事件的传播 包含Inbound和Outbound*/
+	@Override
+	ChannelHandlerContext fireChannelRegistered();
 
-    @Override
-    ChannelHandlerContext fireChannelUnregistered();
+	@Override
+	ChannelHandlerContext fireChannelUnregistered();
 
-    @Override
-    ChannelHandlerContext fireChannelActive();
+	@Override
+	ChannelHandlerContext fireChannelActive();
 
-    @Override
-    ChannelHandlerContext fireChannelInactive();
+	@Override
+	ChannelHandlerContext fireChannelInactive();
 
-    @Override
-    ChannelHandlerContext fireExceptionCaught(Throwable cause);
+	@Override
+	ChannelHandlerContext fireExceptionCaught(Throwable cause);
 
-    @Override
-    ChannelHandlerContext fireUserEventTriggered(Object evt);
+	@Override
+	ChannelHandlerContext fireUserEventTriggered(Object evt);
 
-    @Override
-    ChannelHandlerContext fireChannelRead(Object msg);
+	@Override
+	ChannelHandlerContext fireChannelRead(Object msg);
 
-    @Override
-    ChannelHandlerContext fireChannelReadComplete();
+	@Override
+	ChannelHandlerContext fireChannelReadComplete();
 
-    @Override
-    ChannelHandlerContext fireChannelWritabilityChanged();
+	@Override
+	ChannelHandlerContext fireChannelWritabilityChanged();
 
-    @Override
-    ChannelHandlerContext read();
+	@Override
+	ChannelHandlerContext read();
 
-    @Override
-    ChannelHandlerContext flush();
+	@Override
+	ChannelHandlerContext flush();
 
-    /**
-     * Return the assigned {@link ChannelPipeline}
-     * <p>
-     * 当前节点所属的pipeline
-     */
-    ChannelPipeline pipeline();
+	/**
+	 * Return the assigned {@link ChannelPipeline}
+	 * <p>
+	 * 当前节点所属的pipeline
+	 */
+	ChannelPipeline pipeline();
 
-    /**
-     * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
-     * <p>
-     * 内存分配器
-     * 表示当前节点如果有数据读写分配ByteBuf时要使用哪个内存分配器取分配
-     */
-    ByteBufAllocator alloc();
+	/**
+	 * Return the assigned {@link ByteBufAllocator} which will be used to allocate {@link ByteBuf}s.
+	 * <p>
+	 * 内存分配器
+	 * 表示当前节点如果有数据读写分配ByteBuf时要使用哪个内存分配器取分配
+	 */
+	ByteBufAllocator alloc();
 
-    /**
-     * @deprecated Use {@link Channel#attr(AttributeKey)}
-     */
-    @Deprecated
-    @Override
-    <T> Attribute<T> attr(AttributeKey<T> key);
+	/**
+	 * @deprecated Use {@link Channel#attr(AttributeKey)}
+	 */
+	@Deprecated
+	@Override
+	<T> Attribute<T> attr(AttributeKey<T> key);
 
-    /**
-     * @deprecated Use {@link Channel#hasAttr(AttributeKey)}
-     */
-    @Deprecated
-    @Override
-    <T> boolean hasAttr(AttributeKey<T> key);
+	/**
+	 * @deprecated Use {@link Channel#hasAttr(AttributeKey)}
+	 */
+	@Deprecated
+	@Override
+	<T> boolean hasAttr(AttributeKey<T> key);
 }

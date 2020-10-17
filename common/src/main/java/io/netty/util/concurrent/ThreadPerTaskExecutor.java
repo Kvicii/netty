@@ -26,21 +26,21 @@ import java.util.concurrent.ThreadFactory;
  */
 public final class ThreadPerTaskExecutor implements Executor {
 
-    private final ThreadFactory threadFactory;
+	private final ThreadFactory threadFactory;
 
-    public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
-        this.threadFactory = ObjectUtil.checkNotNull(threadFactory, "threadFactory");
-    }
+	public ThreadPerTaskExecutor(ThreadFactory threadFactory) {
+		this.threadFactory = ObjectUtil.checkNotNull(threadFactory, "threadFactory");
+	}
 
-    /**
-     * 每次执行任务时都会通过ThreadFactory构造一个新的Thread执行
-     * 该线程工程默认的newThread实现位置:
-     * {@link DefaultThreadFactory#newThread(Runnable)}
-     *
-     * @param command
-     */
-    @Override
-    public void execute(Runnable command) {
-        threadFactory.newThread(command).start();
-    }
+	/**
+	 * 每次执行任务时都会通过ThreadFactory构造一个新的Thread执行
+	 * 该线程工程默认的newThread实现位置:
+	 * {@link DefaultThreadFactory#newThread(Runnable)}
+	 *
+	 * @param command
+	 */
+	@Override
+	public void execute(Runnable command) {
+		threadFactory.newThread(command).start();
+	}
 }

@@ -27,40 +27,40 @@ import java.lang.reflect.Constructor;
  */
 public class ReflectiveChannelFactory<T extends Channel> implements ChannelFactory<T> {
 
-    private final Constructor<? extends T> constructor;
+	private final Constructor<? extends T> constructor;
 
-    /**
-     * 构造函数只是将clazz的构造函数存入成员变量方便进行调用
-     *
-     * @param clazz
-     */
-    public ReflectiveChannelFactory(Class<? extends T> clazz) {
-        ObjectUtil.checkNotNull(clazz, "clazz");
-        try {
-            this.constructor = clazz.getConstructor();
-        } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException("Class " + StringUtil.simpleClassName(clazz) +
-                    " does not have a public non-arg constructor", e);
-        }
-    }
+	/**
+	 * 构造函数只是将clazz的构造函数存入成员变量方便进行调用
+	 *
+	 * @param clazz
+	 */
+	public ReflectiveChannelFactory(Class<? extends T> clazz) {
+		ObjectUtil.checkNotNull(clazz, "clazz");
+		try {
+			this.constructor = clazz.getConstructor();
+		} catch (NoSuchMethodException e) {
+			throw new IllegalArgumentException("Class " + StringUtil.simpleClassName(clazz) +
+					" does not have a public non-arg constructor", e);
+		}
+	}
 
-    /**
-     * 调用构造函数返回相应的Channel实例
-     *
-     * @return
-     */
-    @Override
-    public T newChannel() {
-        try {
-            return constructor.newInstance();
-        } catch (Throwable t) {
-            throw new ChannelException("Unable to create Channel from class " + constructor.getDeclaringClass(), t);
-        }
-    }
+	/**
+	 * 调用构造函数返回相应的Channel实例
+	 *
+	 * @return
+	 */
+	@Override
+	public T newChannel() {
+		try {
+			return constructor.newInstance();
+		} catch (Throwable t) {
+			throw new ChannelException("Unable to create Channel from class " + constructor.getDeclaringClass(), t);
+		}
+	}
 
-    @Override
-    public String toString() {
-        return StringUtil.simpleClassName(ReflectiveChannelFactory.class) +
-                '(' + StringUtil.simpleClassName(constructor.getDeclaringClass()) + ".class)";
-    }
+	@Override
+	public String toString() {
+		return StringUtil.simpleClassName(ReflectiveChannelFactory.class) +
+				'(' + StringUtil.simpleClassName(constructor.getDeclaringClass()) + ".class)";
+	}
 }

@@ -75,7 +75,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 		this.ch = ch;
 		this.readInterestOp = readInterestOp;
 		try {
-			ch.configureBlocking(false);
+			ch.configureBlocking(false);    // 设置非阻塞
 		} catch (IOException e) {
 			try {
 				ch.close();
@@ -360,6 +360,8 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 		boolean selected = false;
 		for (; ; ) {
 			try {
+				// 调用JDK底层的register方法完成实际的注册Selector 0代表不关心任何事件
+				// this代表Channel 通过attachment绑定到Selector 后续Selector轮询到Channel产生读写事件时可以取出attachment 基于netty的Channel做事件的传播
 				selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
 				return;
 			} catch (CancelledKeyException e) {
@@ -385,16 +387,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 	@Override
 	protected void doBeginRead() throws Exception {
 		// Channel.read() or ChannelHandlerContext.read() was called
-		final SelectionKey selectionKey = this.selectionKey;
+		final SelectionKey selectionKey = this.selectionKey;    // 获取之前NioServerSocketChannel注册到Selector时返回的SelectionKey
 		if (!selectionKey.isValid()) {
 			return;
 		}
 
 		readPending = true;
 
-		final int interestOps = selectionKey.interestOps();
+		final int interestOps = selectionKey.interestOps();    // 拿到SelectionKey感兴趣的事件 在注册NioServerSocketChannel时事件注册为了0
 		if ((interestOps & readInterestOp) == 0) {
-			selectionKey.interestOps(interestOps | readInterestOp);
+			selectionKey.interestOps(interestOps | readInterestOp);    // 在注册事件的基础上再增加一个事件 在注册NioServerSocketChannel时(见NioServerSocketChannel的构造函数)这个readInterestOp事件就是一个OP_ACCEPT事件
 		}
 	}
 

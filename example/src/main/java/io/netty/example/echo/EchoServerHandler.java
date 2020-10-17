@@ -25,35 +25,35 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 @Sharable
 public class EchoServerHandler extends ChannelInboundHandlerAdapter {
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) {
-        ctx.write(msg);
-    }
+	@Override
+	public void channelRead(ChannelHandlerContext ctx, Object msg) {
+		ctx.write(msg);
+	}
 
-    @Override
-    public void channelReadComplete(ChannelHandlerContext ctx) {
-        ctx.flush();
-    }
+	@Override
+	public void channelReadComplete(ChannelHandlerContext ctx) {
+		ctx.flush();
+	}
 
-    @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-        // Close the connection when an exception is raised.
-        cause.printStackTrace();
-        ctx.close();
-    }
+	@Override
+	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+		// Close the connection when an exception is raised.
+		cause.printStackTrace();
+		ctx.close();
+	}
 
-    @Override
-    public void channelRegistered(ChannelHandlerContext ctx) {
-        System.out.println("NioServerSocketChannel注册Selector时调用了channelRegistered方法");
-    }
+	@Override
+	public void channelRegistered(ChannelHandlerContext ctx) {
+		System.out.println("NioServerSocketChannel注册Selector时调用了channelRegistered方法");
+	}
 
-    @Override
-    public void handlerAdded(ChannelHandlerContext ctx) {
-        System.out.println("NioServerSocketChannel注册Selector时调用了handlerAdded方法");
-    }
+	@Override
+	public void handlerAdded(ChannelHandlerContext ctx) {
+		System.out.println("NioServerSocketChannel注册Selector时调用了handlerAdded方法");
+	}
 
-    @Override
-    public void channelActive(ChannelHandlerContext ctx) {
-        System.out.println("NioServerSocketChannel绑定端口时调用了channelActive方法");
-    }
+	@Override
+	public void channelActive(ChannelHandlerContext ctx) {
+		System.out.println("NioServerSocketChannel绑定端口时调用了channelActive方法");
+	}
 }

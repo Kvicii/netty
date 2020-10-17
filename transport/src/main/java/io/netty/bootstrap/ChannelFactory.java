@@ -22,8 +22,8 @@ import io.netty.channel.Channel;
  */
 @Deprecated
 public interface ChannelFactory<T extends Channel> {
-    /**
-     * Creates a new channel.
-     */
-    T newChannel();
+	/**
+	 * Creates a new channel.
+	 */
+	T newChannel();
 }
