@@ -16,7 +16,6 @@
 package io.netty.channel;
 
 import io.netty.buffer.ByteBufAllocator;
-import io.netty.channel.nio.AbstractNioChannel;
 import io.netty.channel.socket.ChannelOutputShutdownEvent;
 import io.netty.channel.socket.ChannelOutputShutdownException;
 import io.netty.util.DefaultAttributeMap;
@@ -46,11 +45,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 	private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractChannel.class);
 
 	// 父通道 对于NioServerSocketChannel而言 其父通道为null    而对于实际处理IO操作的NioSocketChannel而言 父通道为接收到该连接的NioServerSocketChannel
-	private final Channel parent;   // 逻辑链
-	private final ChannelId id; // 每个channel唯一的标识
+	private final Channel parent;    // 逻辑链
+	private final ChannelId id;    // 每个channel唯一的标识
 	private final Unsafe unsafe;    // 用于完成实际的IO操作
-	// 每个Channel中都含有一个pipeline 用于关联多个Handler
-	private final DefaultChannelPipeline pipeline;
+	private final DefaultChannelPipeline pipeline;    // 每个Channel中都含有一个pipeline 用于关联多个Handler
 	private final VoidChannelPromise unsafeVoidPromise = new VoidChannelPromise(this, false);
 	private final CloseFuture closeFuture = new CloseFuture(this);
 
@@ -73,7 +71,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 	 * @param parent the parent of this channel. {@code null} if there's no parent.
 	 */
 	protected AbstractChannel(Channel parent) {
-		this.parent = parent;   // 如果是客户端 那么该parent就是创建客户端channel的服务端channel
+		this.parent = parent;    // 如果是客户端 那么该parent就是创建客户端channel的服务端channel
 		id = newId();
 		unsafe = newUnsafe();
 		pipeline = newChannelPipeline();    // 创建pipeline
@@ -308,12 +306,12 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 	 */
 	@Override
 	public Channel read() {
-		pipeline.read();    // pipeline传播读事件
+		pipeline.read();
 		return this;
 	}
 
 	/**
-	 * 启动出战流水线处理 把处理后的最终数据写到Nio Channel
+	 * 启动出站流水线处理 把处理后的最终数据写到Nio Channel
 	 *
 	 * @param msg
 	 * @return
@@ -503,11 +501,11 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 				return;
 			}
 
-			AbstractChannel.this.eventLoop = eventLoop; // 后续所有的IO操作都交由该eventLoop处理
+			AbstractChannel.this.eventLoop = eventLoop;    // 后续所有的IO操作都交由该eventLoop处理
 
 			// [客户端channel绑定Selector时]此处的发起线程是服务端channel对应的NioEventLoop
-			if (eventLoop.inEventLoop()) {  // 判断当前线程是否是NioEventLoop的线程
-				register0(promise); // 实际注册
+			if (eventLoop.inEventLoop()) {    // 判断当前线程是否是NioEventLoop的线程
+				register0(promise);    // 实际注册
 			} else {
 				try {
 					eventLoop.execute(() -> register0(promise));    // 把register封装为一个task丢到eventLoop执行
@@ -530,17 +528,14 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 					return;
 				}
 				boolean firstRegistration = neverRegistered;
-				doRegister();   // 1.进行注册
+				doRegister();     // 1.进行注册
 				neverRegistered = false;
 				registered = true;
 
-				/**
-				 * Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
-				 * user may already fire events through the pipeline in the ChannelFutureListener.
-				 *
-				 * 2.触发handlerAdded事件
-				 * 对应的是调用 {@link ChannelInboundHandlerAdapter#handlerAdded(ChannelHandlerContext)} 方法
-				 */
+				// Ensure we call handlerAdded(...) before we actually notify the promise. This is needed as the
+				// user may already fire events through the pipeline in the ChannelFutureListener.
+				// 2.触发handlerAdded事件
+				// 对应的是调用 {@link ChannelInboundHandlerAdapter#handlerAdded(ChannelHandlerContext)} 方法
 				pipeline.invokeHandlerAddedIfNeeded();
 
 				safeSetSuccess(promise);
@@ -551,7 +546,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 				pipeline.fireChannelRegistered();
 				// Only fire a channelActive if the channel has never been registered. This prevents firing
 				// multiple channel actives if the channel is deregistered and re-registered.
-				if (isActive()) {   // ServerSocketChannel的注册不会进入到这个逻辑 socket接受连接创建可以进入(此时的socket连接已经建立好) 因为ServerSocketChannel的还没有进行bind(bind时才触发了ChannelActive事件) 此时无法接受新连接接入
+				if (isActive()) {    // ServerSocketChannel的注册不会进入到这个逻辑 socket接受连接创建可以进入(此时的socket连接已经建立好) 因为ServerSocketChannel的还没有进行bind(bind时才触发了ChannelActive事件) 此时无法接受新连接接入
 					if (firstRegistration) {    // 是否是首次注册
 						pipeline.fireChannelActive();
 					} else if (config().isAutoRead()) {
@@ -598,16 +593,16 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 								"address (" + localAddress + ") anyway as requested.");
 			}
 
-			boolean wasActive = isActive(); // 端口还未绑定 此时isActive方法返回false
+			boolean wasActive = isActive();    // 端口还未绑定 此时isActive方法返回false
 			try {
-				doBind(localAddress);   // 1.ServerSocketChannel在这一步调用JDK底层API完成实际的绑定
+				doBind(localAddress);    // 1.ServerSocketChannel在这一步调用JDK底层API完成实际的绑定
 			} catch (Throwable t) {
 				safeSetFailure(promise, t);
 				closeIfClosed();
 				return;
 			}
 
-			if (!wasActive && isActive()) { // 端口绑定完成后isActive方法返回true 从非active转换为active再执行
+			if (!wasActive && isActive()) {    // 端口绑定完成后isActive方法返回true 从非active转换为active再执行
 				/**
 				 * 2.触发channelActive事件 从pipeline的HeadContext开始进行传播
 				 * 实际调用{@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)} 方法
@@ -741,7 +736,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
 			final boolean wasActive = isActive();
 			final ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
-			this.outboundBuffer = null; // Disallow adding any messages and flushes to outboundBuffer.  不再接受消息
+			this.outboundBuffer = null; // Disallow adding any messages and flushes to outboundBuffer.
 			Executor closeExecutor = prepareToClose();
 			if (closeExecutor != null) {
 				closeExecutor.execute(() -> {
@@ -765,10 +760,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 					// Close the channel and fail the queued messages in all cases.
 					doClose0(promise);
 				} finally {
-					if (outboundBuffer != null) {   // 之前的版本是有消息发送就不会关闭 待发送完成之后再close
+					if (outboundBuffer != null) {    // 之前的版本是有消息发送就不会关闭 待发送完成之后再close
 						// Fail all the queued messages.
-						outboundBuffer.failFlushed(cause, notify);  // 将队列中所有的消息失效掉
-						outboundBuffer.close(closeCause);   // 关闭outboundBuffer
+						outboundBuffer.failFlushed(cause, notify);    // 将队列中所有的消息失效掉
+						outboundBuffer.close(closeCause);    // 关闭outboundBuffer
 					}
 				}
 				if (inFlush0) {
@@ -781,7 +776,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
 		private void doClose0(ChannelPromise promise) {
 			try {
-				doClose();  // 将SelectionKey cancel掉 之后这个Selector上就不会发生这个channel的event了
+				doClose();    // 将SelectionKey cancel掉 之后这个Selector上就不会发生这个channel的event了
 				closeFuture.setClosed();
 				safeSetSuccess(promise);
 			} catch (Throwable t) {
@@ -808,6 +803,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 		@Override
 		public final void deregister(final ChannelPromise promise) {
 			assertEventLoop();
+
 			deregister(promise, false);
 		}
 
@@ -879,7 +875,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 			assertEventLoop();
 
 			ChannelOutboundBuffer outboundBuffer = this.outboundBuffer;
-			if (outboundBuffer == null) {   // 判断channel是否关闭
+			if (outboundBuffer == null) {    // 判断channel是否关闭
 				// If the outboundBuffer is null we know the channel was closed and so
 				// need to fail the future right away. If it is not null the handling of the rest
 				// will be done in flush0()
@@ -903,7 +899,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 				return;
 			}
 
-			outboundBuffer.addMessage(msg, size, promise);  // 将消息放到buffer
+			outboundBuffer.addMessage(msg, size, promise);    // 将消息放到buffer
 		}
 
 		@Override
@@ -915,7 +911,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 				return;
 			}
 
-			outboundBuffer.addFlush();  // 将要发送(unflushedEntry)的数据转移到发送的区域(flushedEntry)
+			outboundBuffer.addFlush();    // 将要发送(unflushedEntry)的数据转移到发送的区域(flushedEntry)
 			flush0();
 		}
 
@@ -1194,8 +1190,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 			initCause(exception);
 		}
 
+		// Suppress a warning since this method doesn't need synchronization
 		@Override
-		public Throwable fillInStackTrace() {
+		public Throwable fillInStackTrace() {   // lgtm[java/non-sync-override]
 			return this;
 		}
 	}
@@ -1209,8 +1206,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 			initCause(exception);
 		}
 
+		// Suppress a warning since this method doesn't need synchronization
 		@Override
-		public Throwable fillInStackTrace() {
+		public Throwable fillInStackTrace() {   // lgtm[java/non-sync-override]
 			return this;
 		}
 	}
@@ -1224,8 +1222,9 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 			initCause(exception);
 		}
 
+		// Suppress a warning since this method doesn't need synchronization
 		@Override
-		public Throwable fillInStackTrace() {
+		public Throwable fillInStackTrace() {   // lgtm[java/non-sync-override]
 			return this;
 		}
 	}

@@ -65,10 +65,7 @@ final class PoolSubpage<T> implements PoolSubpageMetric {
         this.runSize = runSize;
         this.elemSize = elemSize;
         bitmap = new long[runSize >>> 6 + LOG2_QUANTUM]; // runSize / 64 / QUANTUM
-        init(head, elemSize);
-    }
 
-    void init(PoolSubpage<T> head, int elemSize) {
         doNotDestroy = true;
         if (elemSize != 0) {
             maxNumElems = numAvail = runSize / elemSize;    // 计算可分配的subpage数
