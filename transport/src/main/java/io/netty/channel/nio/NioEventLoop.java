@@ -159,6 +159,11 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 		}
 	}
 
+	/**
+	 * 对于HashSet -> SelectedSelectionKeySet(数组)的优化是在openSelector中完成的
+	 *
+	 * @return
+	 */
 	private SelectorTuple openSelector() {
 		final Selector unwrappedSelector;
 		try {
@@ -171,6 +176,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 			return new SelectorTuple(unwrappedSelector);
 		}
 
+		// 通过反射获取到SelectorImpl对象
 		Object maybeSelectorImplClass = AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
 			try {
 				return Class.forName(
@@ -212,8 +218,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 					long selectedKeysFieldOffset = PlatformDependent.objectFieldOffset(selectedKeysField);
 					long publicSelectedKeysFieldOffset =
 							PlatformDependent.objectFieldOffset(publicSelectedKeysField);
-					// 通过反射将优化后的数据结构设置到NioEventLoop的Selector属性中
-					if (selectedKeysFieldOffset != -1 && publicSelectedKeysFieldOffset != -1) { // 优化的逻辑
+					if (selectedKeysFieldOffset != -1 && publicSelectedKeysFieldOffset != -1) {
 						PlatformDependent.putObject(
 								unwrappedSelector, selectedKeysFieldOffset, selectedKeySet);
 						PlatformDependent.putObject(
@@ -231,7 +236,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 				if (cause != null) {
 					return cause;
 				}
-
+				// 通过反射将优化后的数据结构设置到NioEventLoop的Selector属性中
 				selectedKeysField.set(unwrappedSelector, selectedKeySet);
 				publicSelectedKeysField.set(unwrappedSelector, selectedKeySet);
 				return null;
@@ -477,7 +482,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 				selectCnt++;
 				cancelledKeys = 0;
 				needsToSelectAgain = false;
-				final int ioRatio = this.ioRatio;   // 如未设置默认为50 即处理IO事件和处理外部事件的比例是1:1
+				// 控制processSelectedKeys和runAllTasks执行的时间
+				final int ioRatio = this.ioRatio;   // 如未设置默认为50 即处理IO事件(processSelectedKeys)和处理外部事件(runAllTasks)的时间比例是1:1
 				boolean ranTasks;
 				if (ioRatio == 100) {
 					try {
@@ -487,14 +493,16 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 					} finally {
 						/**
 						 * Ensure we always run tasks.
+						 *
 						 * 3.处理外部线程扔到TaskQueue(MpscQueue)中的任务
-						 * MpScQueue 为每个NioEventLoop绑定Selector时创建的:
+						 * MpScQueue 为每个NioEventLoop绑定Selector时创建的
+						 * :
 						 * {@link NioEventLoopGroup#newChild(java.util.concurrent.Executor, java.lang.Object...)}
 						 * {@link SingleThreadEventLoop#SingleThreadEventExecutor(EventExecutorGroup, Executor, boolean, Queue, RejectedExecutionHandler)}
 						 */
 						ranTasks = runAllTasks();
 					}
-				} else if (strategy > 0) {  // ioRatio == 50
+				} else if (strategy > 0) {  // 默认执行分支 ioRatio == 50 此时外部事件和IO事件的处理时长是1:1
 					final long ioStartTime = System.nanoTime(); // 记录开始时间
 					try {
 						processSelectedKeys();
@@ -680,8 +688,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 	}
 
 	private void processSelectedKey(SelectionKey k, AbstractNioChannel ch) {
-		final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();    // 获取Channel对应的Unsafe
-		if (!k.isValid()) { // SelectionKey不是合法的
+		final AbstractNioChannel.NioUnsafe unsafe = ch.unsafe();    // 获取Channel对应的Unsafe对象
+		if (!k.isValid()) { // SelectionKey不是合法的 说明连接可能有点问题
 			final EventLoop eventLoop;
 			try {
 				eventLoop = ch.eventLoop();
@@ -726,8 +734,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 			 * Also check for readOps of 0 to workaround possible JDK bug which may otherwise lead
 			 * to a spin loop
 			 *
-			 * 如果是 workerGroup 轮询出来的事件可能是OP_READ
-			 * 如果是 bossGroup 轮询出来的事件可能是OP_ACCEPT
+			 * 如果当前NioEventLoop是 workerGroup 轮询出来的事件可能是OP_READ
+			 * 如果当前NioEventLoop是 bossGroup 轮询出来的事件可能是OP_ACCEPT
 			 */
 			if ((readyOps & (SelectionKey.OP_READ | SelectionKey.OP_ACCEPT)) != 0 || readyOps == 0) {   // 处理读事件/连接断开/连接接入事件--对于OP_ACCEPT和OP_READ都是一套逻辑只不过实现不同
 				unsafe.read();  // SocketChannel会执行AbstractNioMessageChannel(OP_READ) ServerSocketChannel会执行AbstractNioByteChannel(OP_ACCEPT)

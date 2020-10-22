@@ -32,162 +32,163 @@ import java.util.concurrent.TimeUnit;
  * Abstract base class for {@link EventExecutor} implementations.
  */
 public abstract class AbstractEventExecutor extends AbstractExecutorService implements EventExecutor {
-    private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractEventExecutor.class);
+	private static final InternalLogger logger = InternalLoggerFactory.getInstance(AbstractEventExecutor.class);
 
-    static final long DEFAULT_SHUTDOWN_QUIET_PERIOD = 2;
-    static final long DEFAULT_SHUTDOWN_TIMEOUT = 15;
+	static final long DEFAULT_SHUTDOWN_QUIET_PERIOD = 2;
+	static final long DEFAULT_SHUTDOWN_TIMEOUT = 15;
 
-    private final EventExecutorGroup parent;
-    private final Collection<EventExecutor> selfCollection = Collections.<EventExecutor>singleton(this);
+	private final EventExecutorGroup parent;
+	private final Collection<EventExecutor> selfCollection = Collections.<EventExecutor>singleton(this);
 
-    protected AbstractEventExecutor() {
-        this(null);
-    }
+	protected AbstractEventExecutor() {
+		this(null);
+	}
 
-    protected AbstractEventExecutor(EventExecutorGroup parent) {
-        this.parent = parent;
-    }
+	protected AbstractEventExecutor(EventExecutorGroup parent) {
+		this.parent = parent;
+	}
 
-    @Override
-    public EventExecutorGroup parent() {
-        return parent;
-    }
+	@Override
+	public EventExecutorGroup parent() {
+		return parent;
+	}
 
-    @Override
-    public EventExecutor next() {
-        return this;
-    }
+	@Override
+	public EventExecutor next() {
+		return this;
+	}
 
-    @Override
-    public boolean inEventLoop() {
-        return inEventLoop(Thread.currentThread());
-    }
+	@Override
+	public boolean inEventLoop() {
+		return inEventLoop(Thread.currentThread());
+	}
 
-    @Override
-    public Iterator<EventExecutor> iterator() {
-        return selfCollection.iterator();
-    }
+	@Override
+	public Iterator<EventExecutor> iterator() {
+		return selfCollection.iterator();
+	}
 
-    @Override
-    public Future<?> shutdownGracefully() {
-        return shutdownGracefully(DEFAULT_SHUTDOWN_QUIET_PERIOD, DEFAULT_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
-    }
+	@Override
+	public Future<?> shutdownGracefully() {
+		return shutdownGracefully(DEFAULT_SHUTDOWN_QUIET_PERIOD, DEFAULT_SHUTDOWN_TIMEOUT, TimeUnit.SECONDS);
+	}
 
-    /**
-     * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
-     */
-    @Override
-    @Deprecated
-    public abstract void shutdown();
+	/**
+	 * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
+	 */
+	@Override
+	@Deprecated
+	public abstract void shutdown();
 
-    /**
-     * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
-     */
-    @Override
-    @Deprecated
-    public List<Runnable> shutdownNow() {
-        shutdown();
-        return Collections.emptyList();
-    }
+	/**
+	 * @deprecated {@link #shutdownGracefully(long, long, TimeUnit)} or {@link #shutdownGracefully()} instead.
+	 */
+	@Override
+	@Deprecated
+	public List<Runnable> shutdownNow() {
+		shutdown();
+		return Collections.emptyList();
+	}
 
-    @Override
-    public <V> Promise<V> newPromise() {
-        return new DefaultPromise<V>(this);
-    }
+	@Override
+	public <V> Promise<V> newPromise() {
+		return new DefaultPromise<V>(this);
+	}
 
-    @Override
-    public <V> ProgressivePromise<V> newProgressivePromise() {
-        return new DefaultProgressivePromise<V>(this);
-    }
+	@Override
+	public <V> ProgressivePromise<V> newProgressivePromise() {
+		return new DefaultProgressivePromise<V>(this);
+	}
 
-    @Override
-    public <V> Future<V> newSucceededFuture(V result) {
-        return new SucceededFuture<V>(this, result);
-    }
+	@Override
+	public <V> Future<V> newSucceededFuture(V result) {
+		return new SucceededFuture<V>(this, result);
+	}
 
-    @Override
-    public <V> Future<V> newFailedFuture(Throwable cause) {
-        return new FailedFuture<V>(this, cause);
-    }
+	@Override
+	public <V> Future<V> newFailedFuture(Throwable cause) {
+		return new FailedFuture<V>(this, cause);
+	}
 
-    @Override
-    public Future<?> submit(Runnable task) {
-        return (Future<?>) super.submit(task);
-    }
+	@Override
+	public Future<?> submit(Runnable task) {
+		return (Future<?>) super.submit(task);
+	}
 
-    @Override
-    public <T> Future<T> submit(Runnable task, T result) {
-        return (Future<T>) super.submit(task, result);
-    }
+	@Override
+	public <T> Future<T> submit(Runnable task, T result) {
+		return (Future<T>) super.submit(task, result);
+	}
 
-    @Override
-    public <T> Future<T> submit(Callable<T> task) {
-        return (Future<T>) super.submit(task);
-    }
+	@Override
+	public <T> Future<T> submit(Callable<T> task) {
+		return (Future<T>) super.submit(task);
+	}
 
-    @Override
-    protected final <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
-        return new PromiseTask<T>(this, runnable, value);
-    }
+	@Override
+	protected final <T> RunnableFuture<T> newTaskFor(Runnable runnable, T value) {
+		return new PromiseTask<T>(this, runnable, value);
+	}
 
-    @Override
-    protected final <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
-        return new PromiseTask<T>(this, callable);
-    }
+	@Override
+	protected final <T> RunnableFuture<T> newTaskFor(Callable<T> callable) {
+		return new PromiseTask<T>(this, callable);
+	}
 
-    @Override
-    public ScheduledFuture<?> schedule(Runnable command, long delay,
-                                       TimeUnit unit) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public ScheduledFuture<?> schedule(Runnable command, long delay,
+									   TimeUnit unit) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public ScheduledFuture<?> scheduleAtFixedRate(Runnable command, long initialDelay, long period, TimeUnit unit) {
+		throw new UnsupportedOperationException();
+	}
 
-    @Override
-    public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public ScheduledFuture<?> scheduleWithFixedDelay(Runnable command, long initialDelay, long delay, TimeUnit unit) {
+		throw new UnsupportedOperationException();
+	}
 
-    /**
-     * Try to execute the given {@link Runnable} and just log if it throws a {@link Throwable}.
-     * 直接执行Runnable的run方法相当于所有的任务串行执行
-     * 所以要保证任务的执行时间不能过长 不然会影响其他任务 如果任务执行时间过长 就要把这个任务放到自定义线程池中处理
-     */
-    protected static void safeExecute(Runnable task) {
-        try {
-            task.run();
-        } catch (Throwable t) { // 任务出现了异常不终止
-            logger.warn("A task raised an exception. Task: {}", task, t);
-        }
-    }
+	/**
+	 * Try to execute the given {@link Runnable} and just log if it throws a {@link Throwable}.
+	 * <p>
+	 * 直接执行Runnable的run方法相当于所有的任务串行执行
+	 * 所以要保证任务的执行时间不能过长 不然会影响其他任务 如果任务执行时间过长 就要把这个任务放到自定义线程池中处理
+	 */
+	protected static void safeExecute(Runnable task) {
+		try {
+			task.run();
+		} catch (Throwable t) { // 任务出现了异常不终止
+			logger.warn("A task raised an exception. Task: {}", task, t);
+		}
+	}
 
-    /**
-     * Like {@link #execute(Runnable)} but does not guarantee the task will be run until either
-     * a non-lazy task is executed or the executor is shut down.
-     * <p>
-     * This is equivalent to submitting a {@link EventExecutor.LazyRunnable} to
-     * {@link #execute(Runnable)} but for an arbitrary {@link Runnable}.
-     * <p>
-     * The default implementation just delegates to {@link #execute(Runnable)}.
-     */
-    @UnstableApi
-    public void lazyExecute(Runnable task) {
-        execute(task);
-    }
+	/**
+	 * Like {@link #execute(Runnable)} but does not guarantee the task will be run until either
+	 * a non-lazy task is executed or the executor is shut down.
+	 * <p>
+	 * This is equivalent to submitting a {@link EventExecutor.LazyRunnable} to
+	 * {@link #execute(Runnable)} but for an arbitrary {@link Runnable}.
+	 * <p>
+	 * The default implementation just delegates to {@link #execute(Runnable)}.
+	 */
+	@UnstableApi
+	public void lazyExecute(Runnable task) {
+		execute(task);
+	}
 
-    /**
-     * Marker interface for {@link Runnable} to indicate that it should be queued for execution
-     * but does not need to run immediately.
-     */
-    @UnstableApi
-    public interface LazyRunnable extends Runnable {
-    }
+	/**
+	 * Marker interface for {@link Runnable} to indicate that it should be queued for execution
+	 * but does not need to run immediately.
+	 */
+	@UnstableApi
+	public interface LazyRunnable extends Runnable {
+	}
 }

@@ -955,8 +955,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 	private static final long SCHEDULE_PURGE_INTERVAL = TimeUnit.SECONDS.toNanos(1);
 
 	private void startThread() {
-		if (state == ST_NOT_STARTED) {
-			if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {
+		if (state == ST_NOT_STARTED) {    // 如果当前线程是未启动的
+			if (STATE_UPDATER.compareAndSet(this, ST_NOT_STARTED, ST_STARTED)) {    // 通过CAS进行实际的线程启动
 				boolean success = false;
 				try {
 					doStartThread();
@@ -1007,9 +1007,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 			}
 
 			boolean success = false;
-			updateLastExecutionTime();
+			SingleThreadEventExecutor.this.updateLastExecutionTime();
 			try {
-				run();  // 调用NioEventLoop的run进行实际的启动
+				SingleThreadEventExecutor.this.run();  // 调用NioEventLoop的run进行实际的启动
 				success = true;
 			} catch (Throwable t) {
 				logger.warn("Unexpected exception from an event executor: ", t);
@@ -1017,7 +1017,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 				for (; ; ) {
 					int oldState = state;
 					if (oldState >= ST_SHUTTING_DOWN || STATE_UPDATER.compareAndSet(
-							this, oldState, ST_SHUTTING_DOWN)) {
+							SingleThreadEventExecutor.this, oldState, ST_SHUTTING_DOWN)) {
 						break;
 					}
 				}
@@ -1036,7 +1036,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 					// is in ST_SHUTTING_DOWN state still accepting tasks which is needed for
 					// graceful shutdown with quietPeriod.
 					for (; ; ) {
-						if (confirmShutdown()) {
+						if (SingleThreadEventExecutor.this.confirmShutdown()) {
 							break;
 						}
 					}
@@ -1046,17 +1046,17 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 					for (; ; ) {
 						int oldState = state;
 						if (oldState >= ST_SHUTDOWN || STATE_UPDATER.compareAndSet(
-								this, oldState, ST_SHUTDOWN)) {
+								SingleThreadEventExecutor.this, oldState, ST_SHUTDOWN)) {
 							break;
 						}
 					}
 
 					// We have the final set of tasks in the queue now, no more can be added, run all remaining.
 					// No need to loop here, this is the final pass.
-					confirmShutdown();
+					SingleThreadEventExecutor.this.confirmShutdown();
 				} finally {
 					try {
-						cleanup();  // 关闭Selector
+						SingleThreadEventExecutor.this.cleanup();  // 关闭Selector
 					} finally {
 						// Lets remove all FastThreadLocals for the Thread as we are about to terminate and notify
 						// the future. The user may block on the future and once it unblocks the JVM may terminate
@@ -1064,9 +1064,9 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 						// See https://github.com/netty/netty/issues/6596.
 						FastThreadLocal.removeAll();
 
-						STATE_UPDATER.set(this, ST_TERMINATED);
+						STATE_UPDATER.set(SingleThreadEventExecutor.this, ST_TERMINATED);
 						threadLock.countDown();
-						int numUserTasks = drainTasks();
+						int numUserTasks = SingleThreadEventExecutor.this.drainTasks();
 						if (numUserTasks > 0 && logger.isWarnEnabled()) {
 							logger.warn("An event executor terminated with " +
 									"non-empty task queue (" + numUserTasks + ')');

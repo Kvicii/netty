@@ -81,7 +81,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
 			Throwable exception = null;
 			try {
 				try {
-					do {
+					do {    //  默认情况下一次性读取16个连接
 						int localRead = doReadMessages(readBuf);    // 新连接接入 服务端的读是读取新的连接
 						if (localRead == 0) {
 							break;
