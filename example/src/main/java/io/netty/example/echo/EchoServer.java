@@ -89,7 +89,7 @@ public final class EchoServer {
 							p.addLast(new ChannelOutboundHandlerC());
 							p.addLast(new ExceptionCaughtHandler());
 							// p.addLast(new LoggingHandler(LogLevel.INFO));
-                            p.addLast(serverHandler);   // 将channelHandler添加到责任链 在请求或响应时都会经过链上的channelHandler处理
+//                            p.addLast(serverHandler);   // 将channelHandler添加到责任链 在请求或响应时都会经过链上的channelHandler处理
 						}
 					});
 

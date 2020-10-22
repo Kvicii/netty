@@ -787,6 +787,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		}
 	}
 
+	/**
+	 * newPromise 用于创建被观察者
+	 *
+	 * @param msg
+	 * @return
+	 */
 	@Override
 	public ChannelFuture writeAndFlush(Object msg) {
 		return writeAndFlush(msg, newPromise());
@@ -996,12 +1002,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 	}
 
 	static final class WriteTask implements Runnable {
-		private static final ObjectPool<WriteTask> RECYCLER = ObjectPool.newPool(new ObjectCreator<WriteTask>() {
-			@Override
-			public WriteTask newObject(Handle<WriteTask> handle) {
-				return new WriteTask(handle);
-			}
-		});
+		private static final ObjectPool<WriteTask> RECYCLER = ObjectPool.newPool(handle -> new WriteTask(handle));
 
 		static WriteTask newInstance(AbstractChannelHandlerContext ctx,
 									 Object msg, ChannelPromise promise, boolean flush) {

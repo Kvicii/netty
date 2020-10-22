@@ -260,3 +260,13 @@ while (true) {
     }
 }
 ```
+
+## netty百万连接数调优
+
+1.如果QPS过高，数据传输过快的情况下，调用writeAndFlush可以考虑拆分成多次write，然后单次flush，也就是批量flush操作
+2.分配和释放内存尽量在reactor线程内部做，这样内存就都可以在reactor线程内部管理
+3.尽量使用堆外内存，尽量减少内存的copy操作，使用CompositeByteBuf可以将多个ByteBuf组合到一起读写
+4.外部线程连续调用eventLoop的异步调用方法的时候，可以考虑把这些操作封装成一个task，提交到eventLoop，这样就不用多次跨线程
+5.尽量调用ChannelHandlerContext.writeXXX()方法而不是channel.writeXXX()方法，前者可以减少pipeline的遍历
+6.如果一个ChannelHandler无数据共享，那么可以搞成单例模式，标注@Shareable，节省对象开销对象
+7.如果要做网络代理类似的功能，尽量复用eventLoop，可以避免跨reactor线程

@@ -425,6 +425,12 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 		return StringUtil.simpleClassName(handlerType) + "#0";
 	}
 
+	/**
+	 * 删除pipeline中的节点
+	 *
+	 * @param handler the {@link ChannelHandler} to remove
+	 * @return
+	 */
 	@Override
 	public final ChannelPipeline remove(ChannelHandler handler) {
 		remove(getContextOrDie(handler));
@@ -609,7 +615,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
 	private static void checkMultiplicity(ChannelHandler handler) {
 		if (handler instanceof ChannelHandlerAdapter) {
 			ChannelHandlerAdapter h = (ChannelHandlerAdapter) handler;  // ChannelHandler强转成ChannelHandlerAdapter
-			if (!h.isSharable() && h.added) {   // ChannelHandlerAdapter非可共享的 && 已经被添加过
+			if (!h.isSharable() && h.added) {   // ChannelHandlerAdapter非共享的 && 已经被添加过
 				throw new ChannelPipelineException(h.getClass().getName() +
 						" is not a @Sharable handler, so can't be added or removed multiple times.");
 			}

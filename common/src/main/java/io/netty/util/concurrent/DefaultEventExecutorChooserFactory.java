@@ -31,6 +31,13 @@ public final class DefaultEventExecutorChooserFactory implements EventExecutorCh
 	private DefaultEventExecutorChooserFactory() {
 	}
 
+	/**
+	 * 根据NioEventLoop线程的数量选择不同的实现策略创建线程选择器
+	 * 策略模式的应用
+	 *
+	 * @param executors
+	 * @return
+	 */
 	@Override
 	public EventExecutorChooser newChooser(EventExecutor[] executors) {
 		// 根据是否是2的幂次方选择不同实现

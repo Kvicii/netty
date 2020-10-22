@@ -45,80 +45,80 @@ import io.netty.util.internal.TypeParameterMatcher;
  */
 public abstract class SimpleChannelInboundHandler<I> extends ChannelInboundHandlerAdapter {
 
-    private final TypeParameterMatcher matcher;
-    private final boolean autoRelease;
+	private final TypeParameterMatcher matcher;
+	private final boolean autoRelease;
 
-    /**
-     * see {@link #SimpleChannelInboundHandler(boolean)} with {@code true} as boolean parameter.
-     */
-    protected SimpleChannelInboundHandler() {
-        this(true);
-    }
+	/**
+	 * see {@link #SimpleChannelInboundHandler(boolean)} with {@code true} as boolean parameter.
+	 */
+	protected SimpleChannelInboundHandler() {
+		this(true);
+	}
 
-    /**
-     * Create a new instance which will try to detect the types to match out of the type parameter of the class.
-     *
-     * @param autoRelease {@code true} if handled messages should be released automatically by passing them to
-     *                    {@link ReferenceCountUtil#release(Object)}.
-     */
-    protected SimpleChannelInboundHandler(boolean autoRelease) {
-        matcher = TypeParameterMatcher.find(this, SimpleChannelInboundHandler.class, "I");
-        this.autoRelease = autoRelease;
-    }
+	/**
+	 * Create a new instance which will try to detect the types to match out of the type parameter of the class.
+	 *
+	 * @param autoRelease {@code true} if handled messages should be released automatically by passing them to
+	 *                    {@link ReferenceCountUtil#release(Object)}.
+	 */
+	protected SimpleChannelInboundHandler(boolean autoRelease) {
+		matcher = TypeParameterMatcher.find(this, SimpleChannelInboundHandler.class, "I");
+		this.autoRelease = autoRelease;
+	}
 
-    /**
-     * see {@link #SimpleChannelInboundHandler(Class, boolean)} with {@code true} as boolean value.
-     */
-    protected SimpleChannelInboundHandler(Class<? extends I> inboundMessageType) {
-        this(inboundMessageType, true);
-    }
+	/**
+	 * see {@link #SimpleChannelInboundHandler(Class, boolean)} with {@code true} as boolean value.
+	 */
+	protected SimpleChannelInboundHandler(Class<? extends I> inboundMessageType) {
+		this(inboundMessageType, true);
+	}
 
-    /**
-     * Create a new instance
-     *
-     * @param inboundMessageType The type of messages to match
-     * @param autoRelease        {@code true} if handled messages should be released automatically by passing them to
-     *                           {@link ReferenceCountUtil#release(Object)}.
-     */
-    protected SimpleChannelInboundHandler(Class<? extends I> inboundMessageType, boolean autoRelease) {
-        matcher = TypeParameterMatcher.get(inboundMessageType);
-        this.autoRelease = autoRelease;
-    }
+	/**
+	 * Create a new instance
+	 *
+	 * @param inboundMessageType The type of messages to match
+	 * @param autoRelease        {@code true} if handled messages should be released automatically by passing them to
+	 *                           {@link ReferenceCountUtil#release(Object)}.
+	 */
+	protected SimpleChannelInboundHandler(Class<? extends I> inboundMessageType, boolean autoRelease) {
+		matcher = TypeParameterMatcher.get(inboundMessageType);
+		this.autoRelease = autoRelease;
+	}
 
-    /**
-     * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
-     * {@link ChannelInboundHandler} in the {@link ChannelPipeline}.
-     */
-    public boolean acceptInboundMessage(Object msg) {
-        return matcher.match(msg);
-    }
+	/**
+	 * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
+	 * {@link ChannelInboundHandler} in the {@link ChannelPipeline}.
+	 */
+	public boolean acceptInboundMessage(Object msg) {
+		return matcher.match(msg);
+	}
 
-    @Override
-    public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        boolean release = true;
-        try {
-            if (acceptInboundMessage(msg)) {    // 如果msg是ByteBuf
-                @SuppressWarnings("unchecked")
-                I imsg = (I) msg;
-                channelRead0(ctx, imsg);    // 调用抽象方法的实现进行业务处理 无需考虑释放ByteBuf
-            } else {
-                release = false;
-                ctx.fireChannelRead(msg);
-            }
-        } finally { // 由SimpleChannelInboundHandler自动释放
-            if (autoRelease && release) {
-                ReferenceCountUtil.release(msg);
-            }
-        }
-    }
+	@Override
+	public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
+		boolean release = true;
+		try {
+			if (acceptInboundMessage(msg)) {    // 如果msg是ByteBuf
+				@SuppressWarnings("unchecked")
+				I imsg = (I) msg;
+				channelRead0(ctx, imsg);    // 调用抽象方法的实现进行业务处理 无需考虑释放ByteBuf
+			} else {
+				release = false;
+				ctx.fireChannelRead(msg);
+			}
+		} finally { // 由SimpleChannelInboundHandler自动释放
+			if (autoRelease && release) {
+				ReferenceCountUtil.release(msg);
+			}
+		}
+	}
 
-    /**
-     * Is called for each message of type {@link I}.
-     *
-     * @param ctx the {@link ChannelHandlerContext} which this {@link SimpleChannelInboundHandler}
-     *            belongs to
-     * @param msg the message to handle
-     * @throws Exception is thrown if an error occurred
-     */
-    protected abstract void channelRead0(ChannelHandlerContext ctx, I msg) throws Exception;
+	/**
+	 * Is called for each message of type {@link I}.
+	 *
+	 * @param ctx the {@link ChannelHandlerContext} which this {@link SimpleChannelInboundHandler}
+	 *            belongs to
+	 * @param msg the message to handle
+	 * @throws Exception is thrown if an error occurred
+	 */
+	protected abstract void channelRead0(ChannelHandlerContext ctx, I msg) throws Exception;
 }

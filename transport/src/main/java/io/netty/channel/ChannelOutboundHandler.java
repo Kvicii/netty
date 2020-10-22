@@ -19,7 +19,7 @@ import java.net.SocketAddress;
 
 /**
  * {@link ChannelHandler} which will get notified for IO-outbound-operations.
- * 出站处理器 方法体现出的更多是用户的调用
+ * 出站处理器 方法体现出的更多是用户主动的调用
  * 出站方向: ChannelOutboundHandler -> Channel
  */
 public interface ChannelOutboundHandler extends ChannelHandler {

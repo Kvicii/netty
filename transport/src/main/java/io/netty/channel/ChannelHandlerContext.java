@@ -86,6 +86,7 @@ import io.netty.util.concurrent.EventExecutor;
  * <p>
  * pipeline中链表的每一个节点都是一个ChannelHandlerContext结构
  * 由于继承了AttributeMap 说明可以存储一些自定义的属性
+ * 对应于责任链模式中的上下文
  */
 public interface ChannelHandlerContext extends AttributeMap, ChannelInboundInvoker, ChannelOutboundInvoker {
 
