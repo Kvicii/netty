@@ -25,7 +25,6 @@ import io.netty.util.concurrent.EventExecutor;
 import io.netty.util.concurrent.OrderedEventExecutor;
 import io.netty.util.internal.ObjectPool;
 import io.netty.util.internal.ObjectPool.Handle;
-import io.netty.util.internal.ObjectPool.ObjectCreator;
 import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.PromiseNotificationUtil;
 import io.netty.util.internal.StringUtil;
@@ -155,12 +154,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeChannelRegistered();
 		} else {
-			executor.execute(new Runnable() {
-				@Override
-				public void run() {
-					next.invokeChannelRegistered();
-				}
-			});
+			executor.execute(() -> next.invokeChannelRegistered());
 		}
 	}
 
@@ -187,12 +181,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeChannelUnregistered();
 		} else {
-			executor.execute(new Runnable() {
-				@Override
-				public void run() {
-					next.invokeChannelUnregistered();
-				}
-			});
+			executor.execute(() -> next.invokeChannelUnregistered());
 		}
 	}
 
@@ -246,12 +235,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeChannelInactive();
 		} else {
-			executor.execute(new Runnable() {
-				@Override
-				public void run() {
-					next.invokeChannelInactive();
-				}
-			});
+			executor.execute(() -> next.invokeChannelInactive());
 		}
 	}
 
@@ -325,12 +309,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeUserEventTriggered(event);
 		} else {
-			executor.execute(new Runnable() {
-				@Override
-				public void run() {
-					next.invokeUserEventTriggered(event);
-				}
-			});
+			executor.execute(() -> next.invokeUserEventTriggered(event));
 		}
 	}
 
@@ -516,12 +495,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeConnect(remoteAddress, localAddress, promise);
 		} else {
-			safeExecute(executor, new Runnable() {
-				@Override
-				public void run() {
-					next.invokeConnect(remoteAddress, localAddress, promise);
-				}
-			}, promise, null, false);
+			safeExecute(executor, () -> next.invokeConnect(remoteAddress, localAddress, promise), promise, null, false);
 		}
 		return promise;
 	}
@@ -555,12 +529,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeDisconnect(promise);
 		} else {
-			safeExecute(executor, new Runnable() {
-				@Override
-				public void run() {
-					next.invokeDisconnect(promise);
-				}
-			}, promise, null, false);
+			safeExecute(executor, () -> next.invokeDisconnect(promise), promise, null, false);
 		}
 		return promise;
 	}
@@ -589,12 +558,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeClose(promise);
 		} else {
-			safeExecute(executor, new Runnable() {
-				@Override
-				public void run() {
-					next.invokeClose(promise);
-				}
-			}, promise, null, false);
+			safeExecute(executor, () -> next.invokeClose(promise), promise, null, false);
 		}
 
 		return promise;
@@ -624,12 +588,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		if (executor.inEventLoop()) {
 			next.invokeDeregister(promise);
 		} else {
-			safeExecute(executor, new Runnable() {
-				@Override
-				public void run() {
-					next.invokeDeregister(promise);
-				}
-			}, promise, null, false);
+			safeExecute(executor, () -> next.invokeDeregister(promise), promise, null, false);
 		}
 
 		return promise;
@@ -981,11 +940,11 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 			return true;
 		} catch (Throwable cause) {
 			try {
-				promise.setFailure(cause);
-			} finally {
 				if (msg != null) {
 					ReferenceCountUtil.release(msg);
 				}
+			} finally {
+				promise.setFailure(cause);
 			}
 			return false;
 		}
