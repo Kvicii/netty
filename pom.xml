@@ -14,7 +14,7 @@
   ~ License for the specific language governing permissions and limitations
   ~ under the License.
   -->
-<project xmlns="https://maven.apache.org/POM/4.0.0" xmlns:xsi="https://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
 
   <modelVersion>4.0.0</modelVersion>
   <parent>
@@ -27,7 +27,7 @@
   <groupId>io.netty</groupId>
   <artifactId>netty-parent</artifactId>
   <packaging>pom</packaging>
-  <version>4.1.54.Final-SNAPSHOT</version>
+  <version>4.1.55.Final-SNAPSHOT</version>
 
   <name>Netty</name>
   <url>https://netty.io/</url>
@@ -359,7 +359,7 @@
     <netty.dev.tools.directory>${project.build.directory}/dev-tools</netty.dev.tools.directory>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <netty.build.version>26</netty.build.version>
+    <netty.build.version>28</netty.build.version>
     <jboss.marshalling.version>1.4.11.Final</jboss.marshalling.version>
     <jetty.alpnAgent.version>2.0.10</jetty.alpnAgent.version>
     <jetty.alpnAgent.path>"${settings.localRepository}"/org/mortbay/jetty/alpn/jetty-alpn-agent/${jetty.alpnAgent.version}/jetty-alpn-agent-${jetty.alpnAgent.version}.jar</jetty.alpnAgent.path>
@@ -672,7 +672,7 @@
       </dependency>
       <dependency>
         <groupId>${project.groupId}</groupId>
-        <artifactId>netty-build</artifactId>
+        <artifactId>netty-build-common</artifactId>
         <version>${netty.build.version}</version>
         <scope>test</scope>
       </dependency>
@@ -795,7 +795,7 @@
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>netty-build</artifactId>
+      <artifactId>netty-build-common</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -992,7 +992,7 @@
           </dependency>
           <dependency>
             <groupId>${project.groupId}</groupId>
-            <artifactId>netty-build</artifactId>
+            <artifactId>netty-build-common</artifactId>
             <version>${netty.build.version}</version>
           </dependency>
           <dependency>
