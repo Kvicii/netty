@@ -206,7 +206,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
         }
     }
 
-    // Method must be called inside synchronized(this) { ... } block
+    // Method must be called inside synchronized(this) { ... } block
     private void allocateNormal(PooledByteBuf<T> buf, int reqCapacity, int sizeIdx, PoolThreadCache threadCache) {
         // 尝试在ChunkList上进行分配 首次都是空的 无法分配 所以该逻辑不会被执行
         if (q050.allocate(buf, reqCapacity, sizeIdx, threadCache) ||
