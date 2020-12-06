@@ -971,7 +971,7 @@ public abstract class ByteBuf implements ReferenceCounted, Comparable<ByteBuf> {
 	 * This method does not modify {@code readerIndex} or {@code writerIndex} of
 	 * this buffer.
 	 * <p>
-	 * write/read API写/读数据时都会移动writeIndex/readIndex指针 而set API不会对指针进行移动
+	 * write/read API写/读数据时都会移动writeIndex/readIndex指针 而setXxx API不会对指针进行移动
 	 *
 	 * @throws IndexOutOfBoundsException if the specified {@code index} is less than {@code 0} or
 	 *                                   {@code index + 1} is greater than {@code this.capacity}

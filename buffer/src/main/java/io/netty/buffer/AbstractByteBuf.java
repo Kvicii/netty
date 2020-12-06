@@ -70,10 +70,22 @@ public abstract class AbstractByteBuf extends ByteBuf {
 	static final ResourceLeakDetector<ByteBuf> leakDetector =
 			ResourceLeakDetectorFactory.instance().newResourceLeakDetector(ByteBuf.class);
 
-	int readerIndex;
-	int writerIndex;
+	int readerIndex;    // 读指针
+	int writerIndex;    // 写指针
+	/**
+	 * mark读指针变量
+	 * 见 {@link ByteBuf#markReaderIndex()}
+	 */
 	private int markedReaderIndex;
+	/**
+	 * mark写指针变量
+	 * 见 {@link ByteBuf#markWriterIndex()}
+	 */
 	private int markedWriterIndex;
+	/**
+	 * ByteBuf最多能分配的容量
+	 * 见 {@link ByteBuf#maxCapacity()}
+	 */
 	private int maxCapacity;
 
 	protected AbstractByteBuf(int maxCapacity) {
