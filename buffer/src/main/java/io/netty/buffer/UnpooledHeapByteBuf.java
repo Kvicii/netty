@@ -45,7 +45,9 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 	 * Creates a new heap buffer with a newly allocated byte array.
 	 *
 	 * @param initialCapacity the initial capacity of the underlying byte array
+	 *                        初始ByteBuf能容纳读写的字节数
 	 * @param maxCapacity     the max capacity of the underlying byte array
+	 *                        ByteBuf在容量不足时最多能扩容多少字节
 	 */
 	public UnpooledHeapByteBuf(ByteBufAllocator alloc, int initialCapacity, int maxCapacity) {
 		super(maxCapacity);
@@ -57,7 +59,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
 		this.alloc = checkNotNull(alloc, "alloc");
 		setArray(allocateArray(initialCapacity));   // 堆内分配是通过数组实现的 这里直接创建一个新数据设置到成员变量
-		setIndex(0, 0); // 设置readerIndex和writerIndex
+		setIndex(0, 0); // 设置readerIndex和writerIndex 起始位置都是0
 	}
 
 	/**

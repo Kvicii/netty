@@ -141,8 +141,8 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
     abstract boolean isDirect();
 
     PooledByteBuf<T> allocate(PoolThreadCache cache, int reqCapacity, int maxCapacity) {
-        PooledByteBuf<T> buf = newByteBuf(maxCapacity); // 从池中获取一个ByteBuf
-        allocate(cache, buf, reqCapacity);  // 在线程私有的PoolThreadCache进行分配 即将新建的ByteBuf上的一些内存地址之类的值在cache上进行初始化
+        PooledByteBuf<T> buf = newByteBuf(maxCapacity); // 从池中获取一个ByteBuf对象
+        allocate(cache, buf, reqCapacity);  // 在线程私有的PoolThreadCache进行分配 即 将新建的ByteBuf上的一些内存地址之类的值在cache上进行初始化
         return buf;
     }
 
@@ -162,7 +162,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
     private void tcacheAllocateSmall(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity, final int sizeIdx) {
 
-        // *进行分配
+        // 首先在缓存进行内存分配
         if (cache.allocateSmall(this, buf, reqCapacity, sizeIdx)) {
             // was able to allocate out of the cache so move on
             return;
@@ -187,7 +187,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
         if (needsNormalAllocation) {
             synchronized (this) {
-                allocateNormal(buf, reqCapacity, sizeIdx, cache);
+                allocateNormal(buf, reqCapacity, sizeIdx, cache);   // 在缓存上没有分配成功 实际的内存分配
             }
         }
 
@@ -196,12 +196,13 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
     private void tcacheAllocateNormal(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity,
                                       final int sizeIdx) {
+        // 首先在缓存进行内存分配
         if (cache.allocateNormal(this, buf, reqCapacity, sizeIdx)) {
             // was able to allocate out of the cache so move on
             return;
         }
         synchronized (this) {
-            allocateNormal(buf, reqCapacity, sizeIdx, cache);
+            allocateNormal(buf, reqCapacity, sizeIdx, cache);   // 在缓存上没有分配成功 实际的内存分配
             ++allocationsNormal;
         }
     }

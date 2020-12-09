@@ -139,7 +139,7 @@ final class PoolThreadCache {
             MemoryRegionCache<T>[] cache = new MemoryRegionCache[numCaches];
             for (int i = 0; i < cache.length; i++) {
                 // TODO: maybe use cacheSize / cache.length
-                cache[i] = new SubPageMemoryRegionCache<T>(cacheSize);
+                cache[i] = new SubPageMemoryRegionCache<>(cacheSize);
             }
             return cache;
         } else {
@@ -154,9 +154,9 @@ final class PoolThreadCache {
             int max = Math.min(area.chunkSize, maxCachedBufferCapacity);
             // Create as many normal caches as we support based on how many sizeIdx we have and what the upper
             // bound is that we want to cache in general.
-            List<MemoryRegionCache<T>> cache = new ArrayList<MemoryRegionCache<T>>() ;
+            List<MemoryRegionCache<T>> cache = new ArrayList<>() ;
             for (int idx = area.numSmallSubpagePools; idx < area.nSizes && area.sizeIdx2size(idx) <= max ; idx++) {
-                cache.add(new NormalMemoryRegionCache<T>(cacheSize));
+                cache.add(new NormalMemoryRegionCache<>(cacheSize));
             }
             return cache.toArray(new MemoryRegionCache[0]);
         } else {
