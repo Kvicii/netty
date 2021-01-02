@@ -314,5 +314,4 @@ public class UnpooledUnsafeDirectByteBuf extends UnpooledDirectByteBuf {
         writerIndex = wIndex + length;
         return this;
     }
->>>>>>> 0dc246eb129796313b58c1dbdd674aa289f72cad
 }

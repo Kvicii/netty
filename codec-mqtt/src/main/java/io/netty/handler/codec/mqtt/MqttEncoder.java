@@ -739,6 +739,4 @@ public final class MqttEncoder extends MessageToMessageEncoder<MqttMessage> {
         } while (num > 0);
         return count;
     }
->>>>>>> 0dc246eb129796313b58c1dbdd674aa289f72cad
-
 }
