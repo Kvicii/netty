@@ -528,6 +528,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 					return;
 				}
 				boolean firstRegistration = neverRegistered;
+				// 1.
 				doRegister();
 				neverRegistered = false;
 				registered = true;
