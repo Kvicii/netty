@@ -38,6 +38,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.nio.file.Files;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.Arrays;
@@ -124,15 +125,29 @@ public final class PlatformDependent {
 	private static final String LINUX_ID_LIKE_PREFIX = "ID_LIKE=";
 	public static final boolean BIG_ENDIAN_NATIVE_ORDER = ByteOrder.nativeOrder() == ByteOrder.BIG_ENDIAN;
 
-	private static final Cleaner NOOP = buffer -> {
-		// NOOP
+	private static final Cleaner NOOP = new Cleaner() {
+		@Override
+		public void freeDirectBuffer(ByteBuffer buffer) {
+			// NOOP
+		}
 	};
 
 	static {
 		if (javaVersion() >= 7) {
-			RANDOM_PROVIDER = () -> java.util.concurrent.ThreadLocalRandom.current();
+			RANDOM_PROVIDER = new ThreadLocalRandomProvider() {
+				@Override
+				@SuppressJava6Requirement(reason = "Usage guarded by java version check")
+				public Random current() {
+					return java.util.concurrent.ThreadLocalRandom.current();
+				}
+			};
 		} else {
-			RANDOM_PROVIDER = () -> ThreadLocalRandom.current();
+			RANDOM_PROVIDER = new ThreadLocalRandomProvider() {
+				@Override
+				public Random current() {
+					return ThreadLocalRandom.current();
+				}
+			};
 		}
 
 		// Here is how the system property is used:
@@ -206,47 +221,50 @@ public final class PlatformDependent {
 		final Set<String> availableClassifiers = new LinkedHashSet<String>();
 		for (final String osReleaseFileName : OS_RELEASE_FILES) {
 			final File file = new File(osReleaseFileName);
-			boolean found = AccessController.doPrivileged((PrivilegedAction<Boolean>) () -> {
-				try {
-					if (file.exists()) {
-						BufferedReader reader = null;
-						try {
-							reader = new BufferedReader(
-									new InputStreamReader(
-											new FileInputStream(file), CharsetUtil.UTF_8));
+			boolean found = AccessController.doPrivileged(new PrivilegedAction<Boolean>() {
+				@Override
+				public Boolean run() {
+					try {
+						if (file.exists()) {
+							BufferedReader reader = null;
+							try {
+								reader = new BufferedReader(
+										new InputStreamReader(
+												new FileInputStream(file), CharsetUtil.UTF_8));
 
-							String line;
-							while ((line = reader.readLine()) != null) {
-								if (line.startsWith(LINUX_ID_PREFIX)) {
-									String id = normalizeOsReleaseVariableValue(
-											line.substring(LINUX_ID_PREFIX.length()));
-									addClassifier(allowedClassifiers, availableClassifiers, id);
-								} else if (line.startsWith(LINUX_ID_LIKE_PREFIX)) {
-									line = normalizeOsReleaseVariableValue(
-											line.substring(LINUX_ID_LIKE_PREFIX.length()));
-									addClassifier(allowedClassifiers, availableClassifiers, line.split("[ ]+"));
+								String line;
+								while ((line = reader.readLine()) != null) {
+									if (line.startsWith(LINUX_ID_PREFIX)) {
+										String id = normalizeOsReleaseVariableValue(
+												line.substring(LINUX_ID_PREFIX.length()));
+										addClassifier(allowedClassifiers, availableClassifiers, id);
+									} else if (line.startsWith(LINUX_ID_LIKE_PREFIX)) {
+										line = normalizeOsReleaseVariableValue(
+												line.substring(LINUX_ID_LIKE_PREFIX.length()));
+										addClassifier(allowedClassifiers, availableClassifiers, line.split("[ ]+"));
+									}
+								}
+							} catch (SecurityException e) {
+								logger.debug("Unable to read {}", osReleaseFileName, e);
+							} catch (IOException e) {
+								logger.debug("Error while reading content of {}", osReleaseFileName, e);
+							} finally {
+								if (reader != null) {
+									try {
+										reader.close();
+									} catch (IOException ignored) {
+										// Ignore
+									}
 								}
 							}
-						} catch (SecurityException e) {
-							logger.debug("Unable to read {}", osReleaseFileName, e);
-						} catch (IOException e) {
-							logger.debug("Error while reading content of {}", osReleaseFileName, e);
-						} finally {
-							if (reader != null) {
-								try {
-									reader.close();
-								} catch (IOException ignored) {
-									// Ignore
-								}
-							}
+							// specification states we should only fall back if /etc/os-release does not exist
+							return true;
 						}
-						// specification states we should only fall back if /etc/os-release does not exist
-						return true;
+					} catch (SecurityException e) {
+						logger.debug("Unable to check if {} exists", osReleaseFileName, e);
 					}
-				} catch (SecurityException e) {
-					logger.debug("Unable to check if {} exists", osReleaseFileName, e);
+					return false;
 				}
-				return false;
 			});
 
 			if (found) {
@@ -912,9 +930,12 @@ public final class PlatformDependent {
 				// jctools goes through its own process of initializing unsafe; of
 				// course, this requires permissions which might not be granted to calling code, so we
 				// must mark this block as privileged too
-				unsafe = AccessController.doPrivileged((PrivilegedAction<Object>) () -> {
-					// force JCTools to initialize unsafe
-					return UnsafeAccess.UNSAFE;
+				unsafe = AccessController.doPrivileged(new PrivilegedAction<Object>() {
+					@Override
+					public Object run() {
+						// force JCTools to initialize unsafe
+						return UnsafeAccess.UNSAFE;
+					}
 				});
 			}
 
@@ -1376,6 +1397,24 @@ public final class PlatformDependent {
 
 	public static Set<String> normalizedLinuxClassifiers() {
 		return LINUX_OS_CLASSIFIERS;
+	}
+
+	@SuppressJava6Requirement(reason = "Guarded by version check")
+	public static File createTempFile(String prefix, String suffix, File directory) throws IOException {
+		if (javaVersion() >= 7) {
+			if (directory == null) {
+				return Files.createTempFile(prefix, suffix).toFile();
+			}
+			return Files.createTempFile(directory.toPath(), prefix, suffix).toFile();
+		}
+		if (directory == null) {
+			return File.createTempFile(prefix, suffix);
+		}
+		File file = File.createTempFile(prefix, suffix, directory);
+		// Try to adjust the perms, if this fails there is not much else we can do...
+		file.setReadable(false, false);
+		file.setReadable(true, true);
+		return file;
 	}
 
 	/**
