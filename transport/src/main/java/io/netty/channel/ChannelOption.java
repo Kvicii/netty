@@ -24,7 +24,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 
 /**
- * A {@link ChannelOption} allows to configure a {@link ChannelConfig} in a type-safe
+ * A {@link ChannelOption} allows to configure a {@link ChannelConfig} in a type-safe
  * way. Which {@link ChannelOption} is supported depends on the actual implementation
  * of {@link ChannelConfig} and may depend on the nature of the transport it belongs
  * to.
@@ -144,6 +144,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     // 表示立即发送数据 默认值为true 操作系统默认为false
     // 该参数值与是否开启Nagle算法是相反的 true表示关闭 false表示开启 如果要求高实时性 有数据发送时立刻发送 此选项应设置为true 如果需要减少发送次数和减少网络交互次数 应设置为false
     public static final ChannelOption<Boolean> TCP_NODELAY = valueOf("TCP_NODELAY");
+    public static final ChannelOption<Boolean> TCP_FASTOPEN_CONNECT = valueOf("TCP_FASTOPEN_CONNECT");
 
     @Deprecated
     public static final ChannelOption<Boolean> DATAGRAM_CHANNEL_ACTIVE_ON_REGISTRATION =
