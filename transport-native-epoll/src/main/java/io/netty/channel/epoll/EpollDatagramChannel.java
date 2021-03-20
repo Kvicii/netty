@@ -35,6 +35,7 @@ import io.netty.channel.unix.Errors.NativeIoException;
 import io.netty.channel.unix.Socket;
 import io.netty.channel.unix.UnixChannelUtil;
 import io.netty.util.ReferenceCountUtil;
+import io.netty.util.UncheckedBooleanSupplier;
 import io.netty.util.internal.ObjectUtil;
 import io.netty.util.internal.RecyclableArrayList;
 import io.netty.util.internal.StringUtil;
@@ -287,11 +288,11 @@ public final class EpollDatagramChannel extends AbstractEpollChannel implements 
 
     @Override
     protected void doWrite(ChannelOutboundBuffer in) throws Exception {
-        for (;;) {
+        int maxMessagesPerWrite = maxMessagesPerWrite();
+        while (maxMessagesPerWrite > 0) {
             Object msg = in.current();
             if (msg == null) {
                 // Wrote all messages.
-                clearFlag(Native.EPOLLOUT);
                 break;
             }
 
@@ -301,7 +302,7 @@ public final class EpollDatagramChannel extends AbstractEpollChannel implements 
                         // We only handle UDP_SEGMENT in sendmmsg.
                         in.current() instanceof SegmentedDatagramPacket) {
                     NativeDatagramPacketArray array = cleanDatagramPacketArray();
-                    array.add(in, isConnected());
+                    array.add(in, isConnected(), maxMessagesPerWrite);
                     int cnt = array.count();
 
                     if (cnt >= 1) {
@@ -309,19 +310,15 @@ public final class EpollDatagramChannel extends AbstractEpollChannel implements 
                         int offset = 0;
                         NativeDatagramPacketArray.NativeDatagramPacket[] packets = array.packets();
 
-                        while (cnt > 0) {
-                            int send = socket.sendmmsg(packets, offset, cnt);
-                            if (send == 0) {
-                                // Did not write all messages.
-                                setFlag(Native.EPOLLOUT);
-                                return;
-                            }
-                            for (int i = 0; i < send; i++) {
-                                in.remove();
-                            }
-                            cnt -= send;
-                            offset += send;
+                        int send = socket.sendmmsg(packets, offset, cnt);
+                        if (send == 0) {
+                            // Did not write all messages.
+                            break;
                         }
+                        for (int i = 0; i < send; i++) {
+                            in.remove();
+                        }
+                        maxMessagesPerWrite -= send;
                         continue;
                     }
                 }
@@ -335,17 +332,25 @@ public final class EpollDatagramChannel extends AbstractEpollChannel implements 
 
                 if (done) {
                     in.remove();
+                    maxMessagesPerWrite --;
                 } else {
-                    // Did not write all messages.
-                    setFlag(Native.EPOLLOUT);
                     break;
                 }
             } catch (IOException e) {
+                maxMessagesPerWrite --;
                 // Continue on write error as a DatagramChannel can write to multiple remote peers
                 //
                 // See https://github.com/netty/netty/issues/2665
                 in.remove(e);
             }
+        }
+
+        if (in.isEmpty()) {
+            // Did write all messages.
+            clearFlag(Native.EPOLLOUT);
+        } else {
+            // Did not write all messages.
+            setFlag(Native.EPOLLOUT);
         }
     }
 
@@ -494,7 +499,9 @@ public final class EpollDatagramChannel extends AbstractEpollChannel implements 
                         } else {
                             break;
                         }
-                    } while (allocHandle.continueReading());
+                    // We use the TRUE_SUPPLIER as it is also ok to read less then what we did try to read (as long
+                    // as we read anything).
+                    } while (allocHandle.continueReading(UncheckedBooleanSupplier.TRUE_SUPPLIER));
                 } catch (Throwable t) {
                     exception = t;
                 }
