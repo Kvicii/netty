@@ -327,6 +327,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         /**
          * 服务端是将ServerSocketChannel绑定到bossGroup 然后ServerSocketChannel负责创建子SocketChannel 再将子SocketChannel绑定到workerGroup
+         *
          * 将NioServerSocketChannel注册到Selector
          * 最终调用的是{@link io.netty.channel.AbstractChannel.AbstractUnsafe#register}
          */
