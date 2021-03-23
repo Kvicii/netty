@@ -121,12 +121,14 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
 	/**
 	 * Return the {@link Runnable} which is ready to be executed with the given {@code nanoTime}.
 	 * You should use {@link #nanoTime()} to retrieve the correct {@code nanoTime}.
+	 *
+	 * @return 截止时间为 nanoTime 的任务
 	 */
 	protected final Runnable pollScheduledTask(long nanoTime) {
 		assert inEventLoop();
 
 		ScheduledFutureTask<?> scheduledTask = peekScheduledTask();
-		if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {    // 取定时任务队列首个任务 如果 == null || 截止时间 > 传入的时间 说明定时任务队列中任务的执行时间还没到 都不需要执行 直接返回null
+		if (scheduledTask == null || scheduledTask.deadlineNanos() - nanoTime > 0) {    // 取定时任务队列(按照任务截止时间排序)首个任务 如果 == null || 截止时间 > 传入的时间 说明定时任务队列中所有任务的执行时间还没到 都不需要执行 直接返回null
 			return null;
 		}
 		scheduledTaskQueue.remove();    // 否则从定时任务队列摘掉这个任务并返回
@@ -187,7 +189,7 @@ public abstract class AbstractScheduledEventExecutor extends AbstractEventExecut
 			delay = 0;
 		}
 		validateScheduled0(delay, unit);
-		// 将任务(callable)封装为一个ScheduledFutureTask 在调用schedule方法
+		// 将任务(callable)封装为一个ScheduledFutureTask 再调用schedule方法
 		return schedule(new ScheduledFutureTask<V>(this, callable, deadlineNanos(unit.toNanos(delay))));
 	}
 

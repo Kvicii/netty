@@ -279,20 +279,21 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 	 * 从定时任务队列聚和任务到TaskQueue
 	 * 该逻辑执行完毕之后 定时任务队列中所有的需要执行的定时任务都会被添加到TaskQueue
 	 *
-	 * @return
+	 * @return 任务聚和结果
 	 */
 	private boolean fetchFromScheduledTaskQueue() {
 		if (scheduledTaskQueue == null || scheduledTaskQueue.isEmpty()) {
 			return true;
 		}
 		long nanoTime = AbstractScheduledEventExecutor.nanoTime();
-		for (; ; ) {
+		for (; ; ) {	// 依次从定时任务队列取截止时间为 nanoTime 的任务 直到全部取完
 			Runnable scheduledTask = pollScheduledTask(nanoTime);   // 获取定时任务队列的首个任务
 			if (scheduledTask == null) {
 				return true;
 			}
-			if (!taskQueue.offer(scheduledTask)) {  // 添加到普通的任务队列中 如果添加失败 则把定时任务重新添加到定时任务队列 否则定时任务就被丢掉了
+			if (!taskQueue.offer(scheduledTask)) {  // 添加到普通的任务队列中
 				// No space left in the task queue add it back to the scheduledTaskQueue so we pick it up again.
+				// 如果添加失败 则把定时任务重新添加到定时任务队列 否则定时任务就被丢掉了
 				scheduledTaskQueue.add((ScheduledFutureTask<?>) scheduledTask);
 				return false;
 			}
@@ -472,13 +473,14 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 	 */
 	protected boolean runAllTasks(long timeoutNanos) {
 		fetchFromScheduledTaskQueue();  // 从定时任务队列聚和任务到TaskQueue
+		// 所有待执行的任务都已经被聚和到TaskQueue
 		Runnable task = pollTask(); // 从TaskQueue获取Task
-		if (task == null) { // Task == null 直接返回
+		if (task == null) { // task == null 说明已经处理完任务队列中的所有任务 直接返回
 			afterRunningAllTasks(); // 执行收尾操作
 			return false;
 		}
 
-		// Task != null 计算截止时间
+		// task != null 计算截止时间
 		final long deadline = timeoutNanos > 0 ? ScheduledFutureTask.nanoTime() + timeoutNanos : 0;
 		long runTasks = 0;
 		long lastExecutionTime;
@@ -495,7 +497,8 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 			 *
 			 * 128 ->        1000 0000
 			 * res ->        0000 0000
-			 * 说明只有64的倍数才 == 0 即在执行任务队列中的所有任务时 如果任务队列中的任务可以执行64次(及64的倍数次) 每累加64次执行该判断
+			 * 说明只有64的倍数才 == 0
+			 * 即在执行任务队列中的所有任务时 如果任务队列中的任务可以执行64次 每累加64次执行该判断
 			 */
 			if ((runTasks & 0x3F) == 0) {   // 累计到64次任务执行完毕后 计算当前时间
 				lastExecutionTime = ScheduledFutureTask.nanoTime();
@@ -504,7 +507,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 					break;
 				}
 			}
-			// 如果没有超过截止时间 继续从任务队列获取任务 直到任务队列没有任务
+			// 如果没有超过截止时间 继续从任务队列获取任务 直到任务全部拿完
 			task = pollTask();
 			if (task == null) { // 记录当前时间
 				lastExecutionTime = ScheduledFutureTask.nanoTime();
@@ -839,6 +842,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
 
 	private void execute(Runnable task, boolean immediate) {
 		boolean inEventLoop = inEventLoop();    // 当前执行的线程是否是NioEventLoop的线程
+		// 添加任务到Mpsc Queue
 		addTask(task);
 		if (!inEventLoop) {
 			startThread();  // 启动一个线程

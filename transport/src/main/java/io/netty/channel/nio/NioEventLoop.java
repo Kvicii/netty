@@ -474,6 +474,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 				} catch (IOException e) {
 					// If we receive an IOException here its because the Selector is messed up. Let's rebuild
 					// the selector and retry. https://github.com/netty/netty/issues/8566
+					// 解决空轮询bug
 					rebuildSelector0();
 					selectCnt = 0;
 					handleLoopException(e);
@@ -523,6 +524,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 					}
 					selectCnt = 0;
 				} else if (unexpectedSelectorWakeup(selectCnt)) { // Unexpected wakeup (unusual case)
+					// 解决空轮询bug
 					selectCnt = 0;
 				}
 			} catch (CancelledKeyException e) {
