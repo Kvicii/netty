@@ -9,11 +9,11 @@ import io.netty.channel.ChannelPromise;
  */
 public class ChannelOutboundHandlerC extends ChannelOutboundHandlerAdapter {
 
-	@Override
-	public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
-		System.out.println("ChannelOutboundHandlerC ==> " + msg);
-		ctx.write(msg, promise);
-	}
+	// @Override
+	// public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
+	// 	System.out.println("ChannelOutboundHandlerC ==> " + msg);
+	// 	ctx.write(msg, promise);
+	// }
 
 	@Override
 	public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {

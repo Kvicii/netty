@@ -725,7 +725,7 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		}
 
 		final AbstractChannelHandlerContext next = findContextOutbound(flush ?
-				(MASK_WRITE | MASK_FLUSH) : MASK_WRITE);
+				(MASK_WRITE | MASK_FLUSH) : MASK_WRITE);	// 找到pipeline中前一个ChannelHandlerContext
 		final Object m = pipeline.touch(msg, next); // 引用计数用的 用来检测内存泄露
 		EventExecutor executor = next.executor();
 		if (executor.inEventLoop()) {
