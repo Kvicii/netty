@@ -146,7 +146,7 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
     private void allocate(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity) {
         final int sizeIdx = size2SizeIdx(reqCapacity);  // 找到MemoryRegionCache中的位置索引 用于在分配时确定使用了哪一个缓存节点
-
+        // 首先尝试在规格化的内存块上进行内存分配
         if (sizeIdx <= smallMaxSizeIdx) {
             tcacheAllocateSmall(cache, buf, reqCapacity, sizeIdx);
         } else if (sizeIdx < nSizes) {
@@ -194,12 +194,12 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
 
     private void tcacheAllocateNormal(PoolThreadCache cache, PooledByteBuf<T> buf, final int reqCapacity,
                                       final int sizeIdx) {
-        // 首先在缓存进行内存分配
+        // 首先在缓存进行内存分配 首次会分配不到 此时就会继续执行
         if (cache.allocateNormal(this, buf, reqCapacity, sizeIdx)) {
             // was able to allocate out of the cache so move on
             return;
         }
-        synchronized (this) {
+        synchronized (this) {   // page级别的内存分配 只会按照8K的整数倍进行分配 不会在一个page的subPage上进行分配
             allocateNormal(buf, reqCapacity, sizeIdx, cache);   // 在缓存上没有分配成功 实际的内存分配
             ++allocationsNormal;
         }
@@ -242,11 +242,12 @@ abstract class PoolArena<T> extends SizeClasses implements PoolArenaMetric {
             deallocationsHuge.increment();
         } else {
             SizeClass sizeClass = sizeClass(handle);
+            // 将连续内存段放入对应MemoryRegionCache数组位置的Queue中
             if (cache != null && cache.add(this, chunk, nioBuffer, handle, normCapacity, sizeClass)) {
                 // cached so not free it.
                 return;
             }
-
+            // 如果Queue满了 标记该连续内存段未使用
             freeChunk(chunk, handle, normCapacity, sizeClass, nioBuffer, false);
         }
     }

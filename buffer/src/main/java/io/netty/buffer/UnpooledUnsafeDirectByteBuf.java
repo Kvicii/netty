@@ -90,6 +90,7 @@ public class UnpooledUnsafeDirectByteBuf extends UnpooledDirectByteBuf {
 
     @Override
     protected byte _getByte(int index) {
+        // 先计算内存地址 再获取到该位置的byte
         return UnsafeByteBufUtil.getByte(addr(index));
     }
 

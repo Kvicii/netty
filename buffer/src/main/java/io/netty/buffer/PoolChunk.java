@@ -322,17 +322,18 @@ final class PoolChunk<T> implements PoolChunkMetric {
     }
 
     private long allocateRun(int runSize) {
+        // 计算在哪一层进行分配
         int pages = runSize >> pageShifts;
         int pageIdx = arena.pages2pageIdx(pages);
 
         synchronized (runsAvail) {
-            //find first queue which has at least one big enough run
+            // find first queue which has at least one big enough run
             int queueIdx = runFirstBestFit(pageIdx);
             if (queueIdx == -1) {
                 return -1;
             }
 
-            //get run with min offset in this queue
+            // get run with min offset in this queue
             PriorityQueue<Long> queue = runsAvail[queueIdx];
             Long handle = queue.poll();
 

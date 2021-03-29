@@ -38,6 +38,7 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
 public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 
 	private final ByteBufAllocator alloc;
+	// Heap类型的内存分配底层依赖数组 在堆上直接分配
 	byte[] array;
 	private ByteBuffer tmpNioBuf;
 
@@ -58,7 +59,7 @@ public class UnpooledHeapByteBuf extends AbstractReferenceCountedByteBuf {
 		}
 
 		this.alloc = checkNotNull(alloc, "alloc");
-		setArray(allocateArray(initialCapacity));   // 堆内分配是通过数组实现的 这里直接创建一个新数据设置到成员变量
+		setArray(allocateArray(initialCapacity));   // 堆内分配是通过byte数组实现的 这里直接创建一个新的byte数组设置到成员变量
 		setIndex(0, 0); // 设置readerIndex和writerIndex 起始位置都是0
 	}
 

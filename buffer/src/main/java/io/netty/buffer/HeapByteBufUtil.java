@@ -21,6 +21,7 @@ package io.netty.buffer;
 final class HeapByteBufUtil {
 
 	static byte getByte(byte[] memory, int index) {
+		// 直接通过数组索引的方式返回byte
 		return memory[index];
 	}
 

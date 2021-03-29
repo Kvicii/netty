@@ -38,7 +38,7 @@ import static io.netty.util.internal.ObjectUtil.checkPositiveOrZero;
 public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 
 	private final ByteBufAllocator alloc;
-	// 该ByteBuf的实现是DirectByteBuffer
+	// Direct类型的内存分配底层依赖ByteBuffer 该ByteBuf的实现是DirectByteBuffer 相当于堆外分配 需要进行手动释放
 	ByteBuffer buffer; // accessed by UnpooledUnsafeNoCleanerDirectByteBuf.reallocateDirect()
 	private ByteBuffer tmpNioBuf;
 	private int capacity;
@@ -61,7 +61,7 @@ public class UnpooledDirectByteBuf extends AbstractReferenceCountedByteBuf {
 		}
 
 		this.alloc = alloc;
-		// 分配堆外内存
+		// 分配堆外内存 将分配出来的ByteBuffer对象保存到成员变量
 		setByteBuffer(allocateDirect(initialCapacity), false);
 	}
 

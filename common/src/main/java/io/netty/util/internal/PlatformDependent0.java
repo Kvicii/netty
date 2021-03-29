@@ -573,6 +573,7 @@ final class PlatformDependent0 {
     }
 
     static byte getByte(byte[] data, int index) {
+        // 通过unsafe的方式获取对应对象偏移量的byte
         return UNSAFE.getByte(data, BYTE_ARRAY_BASE_OFFSET + index);
     }
 

@@ -3,15 +3,15 @@
   <ID>JAVA</ID>
   <OriginalElement>io.netty.buffer.ByteBufAllocator</OriginalElement>
   <nodes>
-    <node x="417.5" y="308.0">io.netty.buffer.UnpooledByteBufAllocator</node>
-    <node x="309.0" y="138.0">io.netty.buffer.ByteBufAllocator</node>
-    <node x="273.0" y="223.0">io.netty.buffer.AbstractByteBufAllocator</node>
-    <node x="137.5" y="308.0">io.netty.buffer.PooledByteBufAllocator</node>
+    <node x="624.0" y="308.0">io.netty.buffer.UnpooledByteBufAllocator</node>
+    <node x="515.5" y="138.0">io.netty.buffer.ByteBufAllocator</node>
+    <node x="479.5" y="223.0">io.netty.buffer.AbstractByteBufAllocator</node>
+    <node x="344.0" y="308.0">io.netty.buffer.PooledByteBufAllocator</node>
   </nodes>
   <notes>
     <note x="0.0" y="0.0">
       <node>io.netty.buffer.ByteBufAllocator</node>
-      <value>内存分配器最直接的两个分类即：Unpooled和Pooled；\n至于是Heap还是Direct类型的内存分配是根据不同的实现具体判断的：\n如果是Heap类型的就分配对内内存，如果是Direct类型的就分配堆外内存；\n而Unsafe和非Unsafe是在具体的实现中判断的，如果能拿到JDK底层的Unsafe对象就是用Unsafe进行分配，不需要人为介入</value>
+      <value>内存分配器最直接的两个分类即：Unpooled和Pooled；\n至于是Heap还是Direct类型的内存分配是在AbstractByteBufAllocator根据不同的实现具体判断的;\n如果是Heap类型的就分配堆内内存，如果是Direct类型的就分配堆外内存；\n而Unsafe和非Unsafe是在具体的实现中(PooledByteBufAllocator/UnpooledByteBufAllocator)判断的，如果能拿到JDK底层的Unsafe对象就是用Unsafe进行分配，不需要人为介入</value>
       <edge>
         <point x="0.0" y="-17.5" />
         <point x="0.0" y="44.0" />
@@ -21,14 +21,14 @@
   <edges>
     <edge source="io.netty.buffer.PooledByteBufAllocator" target="io.netty.buffer.AbstractByteBufAllocator">
       <point x="0.0" y="-17.5" />
-      <point x="267.5" y="283.0" />
-      <point x="342.5" y="283.0" />
+      <point x="474.0" y="283.0" />
+      <point x="549.0" y="283.0" />
       <point x="-69.5" y="17.5" />
     </edge>
     <edge source="io.netty.buffer.UnpooledByteBufAllocator" target="io.netty.buffer.AbstractByteBufAllocator">
       <point x="0.0" y="-17.5" />
-      <point x="556.5" y="283.0" />
-      <point x="481.5" y="283.0" />
+      <point x="763.0" y="283.0" />
+      <point x="688.0" y="283.0" />
       <point x="69.5" y="17.5" />
     </edge>
     <edge source="io.netty.buffer.AbstractByteBufAllocator" target="io.netty.buffer.ByteBufAllocator">
@@ -36,7 +36,7 @@
       <point x="0.0" y="17.5" />
     </edge>
   </edges>
-  <settings layout="Hierarchic Group" zoom="1.643646240234375" x="412.0" y="173.5" />
+  <settings layout="Hierarchic Group" zoom="1.0" x="618.5" y="171.5" />
   <SelectedNodes>
     <node>io.netty.buffer.ByteBufAllocator</node>
   </SelectedNodes>

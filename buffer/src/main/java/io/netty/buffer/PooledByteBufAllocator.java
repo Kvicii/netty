@@ -194,6 +194,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
     @SuppressWarnings("deprecation")
     public PooledByteBufAllocator(boolean preferDirect) {   // 创建内存分配器PooledByteBufAllocator时默认的HeapArena和DirectArena数组长度
+        // DEFAULT_NUM_HEAP_ARENA和DEFAULT_NUM_DIRECT_ARENA一般为2倍CPU核数 之所以这样设置是为了和NioEventLoop线程数对应 每个线程单独进行内存分配时不需要加锁
         this(preferDirect, DEFAULT_NUM_HEAP_ARENA, DEFAULT_NUM_DIRECT_ARENA, DEFAULT_PAGE_SIZE, DEFAULT_MAX_ORDER);
     }
 
@@ -294,7 +295,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
 
         int pageShifts = validateAndCalculatePageShifts(pageSize, directMemoryCacheAlignment);
 
-        if (nHeapArena > 0) {   // 在创建PooledByteBufAllocator时 创建HeapArena
+        if (nHeapArena > 0) {   // 在创建PooledByteBufAllocator时 创建HeapArena 数组中的每个元素都是HeapArena
             heapArenas = newArenaArray(nHeapArena);
             List<PoolArenaMetric> metrics = new ArrayList<>(heapArenas.length);
             for (int i = 0; i < heapArenas.length; i++) {
@@ -310,7 +311,7 @@ public class PooledByteBufAllocator extends AbstractByteBufAllocator implements 
             heapArenaMetrics = Collections.emptyList();
         }
 
-        if (nDirectArena > 0) { // 同理 创建DirectArena
+        if (nDirectArena > 0) { // 同理 创建DirectArena 数组中的每个元素都是DirectArena
             directArenas = newArenaArray(nDirectArena);
             List<PoolArenaMetric> metrics = new ArrayList<>(directArenas.length);
             for (int i = 0; i < directArenas.length; i++) {

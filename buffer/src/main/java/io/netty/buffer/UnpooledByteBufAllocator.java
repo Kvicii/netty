@@ -97,14 +97,14 @@ public final class UnpooledByteBufAllocator extends AbstractByteBufAllocator imp
 	 * 在_getByte等API时Unsafe的DirectByteBuf对象是直接通过JDK底层的Unsafe对象直接获取 buffer的内存地址 + 偏移量 的地址获取对应的值
 	 * 而非Unsafe的DirectByteBuf对象通过JDK底层的DirectByteBuf对象获取对应索引位置的值
 	 *
-	 * @param initialCapacity
-	 * @param maxCapacity
-	 * @return
+	 * @param initialCapacity ByteBuf初始容量
+	 * @param maxCapacity     ByteBuffer最大容量
+	 * @return ByteBuffer
 	 */
 	@Override
 	protected ByteBuf newDirectBuffer(int initialCapacity, int maxCapacity) {
 		final ByteBuf buf;
-		if (PlatformDependent.hasUnsafe()) {
+		if (PlatformDependent.hasUnsafe()) {	// 根据是否持有unsafe对象调用不同的实现
 			buf = noCleaner ? new InstrumentedUnpooledUnsafeNoCleanerDirectByteBuf(this, initialCapacity, maxCapacity) :
 					new InstrumentedUnpooledUnsafeDirectByteBuf(this, initialCapacity, maxCapacity);
 		} else {

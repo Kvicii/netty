@@ -106,7 +106,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
 
         for (PoolChunk<T> cur = head; cur != null; cur = cur.next) {    // 从Head节点开始遍历Chunk
             if (cur.allocate(buf, reqCapacity, sizeIdx, threadCache)) {
-                if (cur.freeBytes <= freeMinThreshold) {    // 当前Chunk可用空间 <= 空闲阈值 从当前Chunk的双线链表中移除 加入到下一个ChunkList
+                if (cur.freeBytes <= freeMinThreshold) {    // 当前Chunk可用空间 <= 空闲阈值 从当前Chunk的双向链表中移除 加入到下一个ChunkList
                     remove(cur);
                     nextList.add(cur);
                 }
@@ -117,6 +117,7 @@ final class PoolChunkList<T> implements PoolChunkListMetric {
     }
 
     boolean free(PoolChunk<T> chunk, long handle, int normCapacity, ByteBuffer nioBuffer) {
+        // 释放一段连续内存
         chunk.free(handle, normCapacity, nioBuffer);
         if (chunk.freeBytes > freeMaxThreshold) {
             remove(chunk);
