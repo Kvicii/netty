@@ -45,6 +45,9 @@ import static io.netty.util.internal.ObjectUtil.checkPositive;
  */
 public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
 
+  /**
+   * 以frameLength作为解析的长度
+   */
   private final int frameLength;
 
   /**
@@ -57,6 +60,16 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
     this.frameLength = frameLength;
   }
 
+  /**
+   * 解码操作
+   *
+   * @param ctx the {@link ChannelHandlerContext} which this {@link ByteToMessageDecoder} belongs to
+   * @param in  the {@link ByteBuf} from which to read data
+   *            ByteBuf数据累加器
+   * @param out the {@link List} to which decoded messages should be added
+   *            存放解析结果的集合
+   * @throws Exception
+   */
   @Override
   protected final void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out)
       throws Exception {
@@ -78,10 +91,11 @@ public class FixedLengthFrameDecoder extends ByteToMessageDecoder {
       @SuppressWarnings("UnusedParameters") ChannelHandlerContext ctx, ByteBuf in)
       throws Exception {
     if (in.readableBytes() < frameLength) {
-      // 小于设置的长度就不解码数据了
+      // 累加器中可读字节小于设置的长度就不解码数据了 说明在ByteToMessageDecoder中需要再读一些数据进行解码
       return null;
     } else {
-      // 按照固定长度解码数据 解决粘包 半包问题
+      // 从累加器中截取frameLength长度的ByteBuf
+      // 解决粘包 半包问题
       return in.readRetainedSlice(frameLength);
     }
   }

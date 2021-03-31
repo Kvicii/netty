@@ -79,32 +79,38 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
     /**
      * Cumulate {@link ByteBuf}s by merge them into one {@link ByteBuf}'s, using memory copies.
      * 使用内存复制方式 -- 默认方式
+     * 将ByteBuf中的数据加入到cumulation
      */
-    public static final Cumulator MERGE_CUMULATOR = (alloc, cumulation, in) -> {
-        if (!cumulation.isReadable() && in.isContiguous()) {
-            // If cumulation is empty and input buffer is contiguous, use it directly
-            cumulation.release();
-            return in;
-        }
-        try {
-            final int required = in.readableBytes();
-            // 按需扩容
-            if (required > cumulation.maxWritableBytes() ||
-                    (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
-                    cumulation.isReadOnly()) {
-                // Expand cumulation (by replacing it) under the following conditions:
-                // - cumulation cannot be resized to accommodate the additional data
-                // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
-                //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
-                return expandCumulation(alloc, cumulation, in);
+    public static final Cumulator MERGE_CUMULATOR = new Cumulator() {
+        @Override
+        public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
+            if (!cumulation.isReadable() && in.isContiguous()) {
+                // If cumulation is empty and input buffer is contiguous, use it directly
+                cumulation.release();
+                return in;
             }
-            cumulation.writeBytes(in, in.readerIndex(), required);
-            in.readerIndex(in.writerIndex());
-            return cumulation;
-        } finally {
-            // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
-            // for whatever release (for example because of OutOfMemoryError)
-            in.release();
+            try {
+                final int required = in.readableBytes();
+                // 按需扩容
+                if (required > cumulation.maxWritableBytes() ||
+                        (required > cumulation.maxFastWritableBytes() && cumulation.refCnt() > 1) ||
+                        cumulation.isReadOnly()) {
+                    // Expand cumulation (by replacing it) under the following conditions:
+                    // - cumulation cannot be resized to accommodate the additional data
+                    // - cumulation can be expanded with a reallocation operation to accommodate but the buffer is
+                    //   assumed to be shared (e.g. refCnt() > 1) and the reallocation may not be safe.
+                    return expandCumulation(alloc, cumulation, in);
+                }
+                // 累加器累加数据
+                cumulation.writeBytes(in, in.readerIndex(), required);
+                in.readerIndex(in.writerIndex());
+                return cumulation;
+            } finally {
+                // We must release in in all cases as otherwise it may produce a leak if writeBytes(...) throw
+                // for whatever release (for example because of OutOfMemoryError)
+                // 释放读到的数据
+                in.release();
+            }
         }
     };
 
@@ -114,34 +120,37 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      * and the decoder implementation this may be slower then just use the {@link #MERGE_CUMULATOR}.
      * 逻辑组合方式
      */
-    public static final Cumulator COMPOSITE_CUMULATOR = (alloc, cumulation, in) -> {
-        if (!cumulation.isReadable()) {
-            cumulation.release();
-            return in;
-        }
-        CompositeByteBuf composite = null;
-        try {
-            // 空间不够先扩容
-            if (cumulation instanceof CompositeByteBuf && cumulation.refCnt() == 1) {
-                composite = (CompositeByteBuf) cumulation;
-                // Writer index must equal capacity if we are going to "write"
-                // new components to the end
-                if (composite.writerIndex() != composite.capacity()) {
-                    composite.capacity(composite.writerIndex());
-                }
-            } else {
-                composite = alloc.compositeBuffer(Integer.MAX_VALUE).addFlattenedComponents(true, cumulation);
+    public static final Cumulator COMPOSITE_CUMULATOR = new Cumulator() {
+        @Override
+        public ByteBuf cumulate(ByteBufAllocator alloc, ByteBuf cumulation, ByteBuf in) {
+            if (!cumulation.isReadable()) {
+                cumulation.release();
+                return in;
             }
-            composite.addFlattenedComponents(true, in);
-            in = null;
-            return composite;
-        } finally {
-            if (in != null) {
-                // We must release if the ownership was not transferred as otherwise it may produce a leak
-                in.release();
-                // Also release any new buffer allocated if we're not returning it
-                if (composite != null && composite != cumulation) {
-                    composite.release();
+            CompositeByteBuf composite = null;
+            try {
+                // 空间不够先扩容
+                if (cumulation instanceof CompositeByteBuf && cumulation.refCnt() == 1) {
+                    composite = (CompositeByteBuf) cumulation;
+                    // Writer index must equal capacity if we are going to "write"
+                    // new components to the end
+                    if (composite.writerIndex() != composite.capacity()) {
+                        composite.capacity(composite.writerIndex());
+                    }
+                } else {
+                    composite = alloc.compositeBuffer(Integer.MAX_VALUE).addFlattenedComponents(true, cumulation);
+                }
+                composite.addFlattenedComponents(true, in);
+                in = null;
+                return composite;
+            } finally {
+                if (in != null) {
+                    // We must release if the ownership was not transferred as otherwise it may produce a leak
+                    in.release();
+                    // Also release any new buffer allocated if we're not returning it
+                    if (composite != null && composite != cumulation) {
+                        composite.release();
+                    }
                 }
             }
         }
@@ -275,13 +284,19 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
-        if (msg instanceof ByteBuf) {
+        if (msg instanceof ByteBuf) {   // 对Bytebuf类型的数据做解码处理
+            // 存放解析结果的List
             CodecOutputList out = CodecOutputList.newInstance();
             try {
+                // 是否是首次从I/O流中读取数据
                 first = cumulation == null;
-                // cumulation -- 数据积累器 是第一笔数据直接加到数据积累器 不是则追加
+                // cumulation
+                // 1.数据积累器 如果是第一次数据读取 直接加到数据积累器
+                // 不是第一次读取则追加到累加器
                 cumulation = cumulator.cumulate(ctx.alloc(),
                         first ? Unpooled.EMPTY_BUFFER : cumulation, (ByteBuf) msg);
+                // 2.调用子类方法进行解析 将解析后的对象放入CodecOutputList
+                // 之后从List中取出这些对象向下进行传播
                 callDecode(ctx, cumulation, out);
             } catch (DecoderException e) {
                 throw e;
@@ -299,14 +314,17 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                         numReads = 0;
                         discardSomeReadBytes();
                     }
+                    // 记录存放解析出来对象的List的长度
                     int size = out.size();
                     firedChannelRead |= out.insertSinceRecycled();
+                    // 将解析出来的对象List向下传播
                     fireChannelRead(ctx, out, size);
                 } finally {
+                    // 回收存放解析结果的List
                     out.recycle();
                 }
             }
-        } else {
+        } else {    // 不是ByteBuf类型的 向下传播
             ctx.fireChannelRead(msg);
         }
     }
@@ -329,6 +347,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     static void fireChannelRead(ChannelHandlerContext ctx, CodecOutputList msgs, int numElements) {
         for (int i = 0; i < numElements; i++) {
+            // msg#getUnsafe会提取出来一个ByteBuf对象 向下传播ByteBuf对象 最终传播到业务解码器 业务解码器就可以通过ByteBuf对象进行业务解码
             ctx.fireChannelRead(msgs.getUnsafe(i));
         }
     }
@@ -433,11 +452,14 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
      */
     protected void callDecode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
         try {
-            while (in.isReadable()) {
+            while (in.isReadable()) {   // 只要累加器还有数据可以读 就不会退出循环
+                // 存放解析结果的List的大小
                 int outSize = out.size();
 
                 if (outSize > 0) {
+                    // 如果已经有解析出来的对象了 在Pipeline中向下进行传播
                     fireChannelRead(ctx, out, outSize);
+                    // 将解析结果情况
                     out.clear();
 
                     // Check if this handler was removed before continuing with decoding.
@@ -450,7 +472,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     }
                     outSize = 0;
                 }
-
+                // 记录数据的可读长度
                 int oldInputLength = in.readableBytes();
                 // decode过程中不能进行handler remove清理操作 decode完成之后才可以
                 decodeRemovalReentryProtection(ctx, in, out);
@@ -463,21 +485,24 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     break;
                 }
 
+                // 如果什么数据都没有解析出来
                 if (outSize == out.size()) {
-                    if (oldInputLength == in.readableBytes()) {
+                    if (oldInputLength == in.readableBytes()) { // 没有读取到任何数据 当前累加器中的数据不能拼成一个完整的数据包
+                        // 本次读取没有凑成一个完整的数据包 只能等到下次读取再读取一点数据再尝试进行解析
                         break;
-                    } else {
+                    } else {    // 已经发生了读取 但是读到的数据没有解析为对象
+                        // 继续循环读取
                         continue;
                     }
                 }
-
-                if (oldInputLength == in.readableBytes()) {
+                // 执行到这里 说明已经从累加器中读取到了数据
+                if (oldInputLength == in.readableBytes()) { // 没有从当前累加器读取数据 但是已经解析出来了一个message 直接抛出异常
                     throw new DecoderException(
                             StringUtil.simpleClassName(getClass()) +
                                     ".decode() did not read anything but decoded a message.");
                 }
 
-                if (isSingleDecode()) {
+                if (isSingleDecode()) { // 如果读一次数据解析一次也会退出循环
                     break;
                 }
             }
@@ -514,6 +539,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
             throws Exception {
         decodeState = STATE_CALLING_CHILD_DECODE;
         try {
+            // 调用子类的decode方法实现对累加器(ByteBuf)的数据进行解析 将解析结果放到List中
             decode(ctx, in, out);
         } finally {
             boolean removePending = decodeState == STATE_HANDLER_REMOVED_PENDING;
