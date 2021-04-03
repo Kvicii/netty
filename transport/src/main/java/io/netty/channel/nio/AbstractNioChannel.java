@@ -417,14 +417,16 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 	 */
 	protected final ByteBuf newDirectBuffer(ByteBuf buf) {
 		final int readableBytes = buf.readableBytes();
-		if (readableBytes == 0) {
+		if (readableBytes == 0) {	// 如果ByteBuf可读字节为0 直接返回一个空的ByteBuf
 			ReferenceCountUtil.safeRelease(buf);
 			return Unpooled.EMPTY_BUFFER;
 		}
 
 		final ByteBufAllocator alloc = alloc();
 		if (alloc.isDirectBufferPooled()) {
+			// 创建一个directBuf
 			ByteBuf directBuf = alloc.directBuffer(readableBytes);
+			// 将buf中的内容全部写到directBuf
 			directBuf.writeBytes(buf, buf.readerIndex(), readableBytes);
 			ReferenceCountUtil.safeRelease(buf);
 			return directBuf;

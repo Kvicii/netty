@@ -77,10 +77,12 @@ public final class ChannelOutboundBuffer {
 	private final Channel channel;
 
 	// Entry(flushedEntry) --> ... Entry(unflushedEntry) --> ... Entry(tailEntry)
-	//
+	// netty中使用了3个指针将数据拆分为3部分 unflushedEntry之前的部分是可以调用flush方法写到socket操作的数据 unflushedEntry之后的部分是没有调用flush方法的 还不能写到socket中
 	// The Entry that is the first in the linked-list structure that was flushed
+	// 链表中第一个被flush过(unflushedEntry节点之前的部分)的指针
 	private Entry flushedEntry;
 	// The Entry which is the first unflushed in the linked-list structure
+	// 链表中第一个没有被flush(tailEntry之前的部分)的指针
 	private Entry unflushedEntry;
 	// The Entry which represents the tail of the buffer
 	private Entry tailEntry;
@@ -118,16 +120,18 @@ public final class ChannelOutboundBuffer {
 	 * the message was written.
 	 */
 	public void addMessage(Object msg, int size, ChannelPromise promise) {
-		// 追加到队尾
+
 		Entry entry = Entry.newInstance(msg, size, total(msg), promise);
 		if (tailEntry == null) {
+			// 如果是首次调用 则flushedEntry指针指向null tailEntry指针和unflushedEntry指针指向传入的entry
 			flushedEntry = null;
 		} else {
+			// 非首次调用直接将entry添加到队尾
 			Entry tail = tailEntry;
 			tail.next = entry;
 		}
 		tailEntry = entry;
-		if (unflushedEntry == null) {
+		if (unflushedEntry == null) {	// 首次添加时调用
 			unflushedEntry = entry;
 		}
 
@@ -146,8 +150,8 @@ public final class ChannelOutboundBuffer {
 		//
 		// See https://github.com/netty/netty/issues/2577
 		Entry entry = unflushedEntry;
-		if (entry != null) {
-			if (flushedEntry == null) {
+		if (entry != null) {	// 初始情况下unflushedEntry是不为null的
+			if (flushedEntry == null) {	// 初始情况下flushedEntry是为null的
 				// there is no flushedEntry yet, so start with the entry
 				flushedEntry = entry;
 			}
@@ -162,6 +166,7 @@ public final class ChannelOutboundBuffer {
 			} while (entry != null);
 
 			// All flushed so reset unflushedEntry
+			// 将unflushedEntry指针设置为null 表明当前所有的数据都是可写的
 			unflushedEntry = null;
 		}
 	}
@@ -181,7 +186,7 @@ public final class ChannelOutboundBuffer {
 
 		// 判断待发送数据的size是否高于高水位线 超过了状态改为不可写 用客户端做判断
 		long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, size);
-		if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {
+		if (newWriteBufferSize > channel.config().getWriteBufferHighWaterMark()) {	// 3.待发送数据不能超过64Byte 如果超过 调用setUnwritable设置写状态
 			setUnwritable(invokeLater);
 		}
 	}
@@ -198,9 +203,10 @@ public final class ChannelOutboundBuffer {
 		if (size == 0) {
 			return;
 		}
-
+		// 总的PENDING_SIZE - 对象的大小
 		long newWriteBufferSize = TOTAL_PENDING_SIZE_UPDATER.addAndGet(this, -size);
 		if (notifyWritability && newWriteBufferSize < channel.config().getWriteBufferLowWaterMark()) {
+			// 直到小于32Byte 就设置写状态为可写 通知当前Channel可写了
 			setWritable(invokeLater);
 		}
 	}
@@ -272,7 +278,7 @@ public final class ChannelOutboundBuffer {
 
 		ChannelPromise promise = e.promise;
 		int size = e.pendingSize;
-
+		// 移除当前Entry
 		removeEntry(e);
 
 		if (!e.cancelled) {
@@ -325,14 +331,14 @@ public final class ChannelOutboundBuffer {
 	}
 
 	private void removeEntry(Entry e) {
-		if (--flushed == 0) {
+		if (--flushed == 0) {	// 如果是最后一个节点
 			// processed everything
 			flushedEntry = null;
 			if (e == tailEntry) {
 				tailEntry = null;
 				unflushedEntry = null;
 			}
-		} else {
+		} else {	// 继续处理下一个节点
 			flushedEntry = e.next;
 		}
 	}
@@ -602,7 +608,7 @@ public final class ChannelOutboundBuffer {
 			final int oldValue = unwritable;
 			final int newValue = oldValue & ~1;
 			if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
-				if (oldValue != 0 && newValue == 0) {
+				if (oldValue != 0 && newValue == 0) {	// // 自旋锁 + CAS 通过Pipeline传播事件
 					fireChannelWritabilityChanged(invokeLater);
 				}
 				break;
@@ -615,7 +621,7 @@ public final class ChannelOutboundBuffer {
 			final int oldValue = unwritable;
 			final int newValue = oldValue | 1;
 			if (UNWRITABLE_UPDATER.compareAndSet(this, oldValue, newValue)) {
-				if (oldValue == 0) {
+				if (oldValue == 0) {	// 自旋锁 + CAS 通过Pipeline传播事件
 					fireChannelWritabilityChanged(invokeLater);
 				}
 				break;

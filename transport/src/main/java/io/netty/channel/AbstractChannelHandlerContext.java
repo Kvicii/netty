@@ -711,6 +711,12 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 		}
 	}
 
+	/**
+	 * @param msg
+	 * @param flush   是否刷新
+	 *                false 表示仅仅把数据写入netty的缓存
+	 * @param promise
+	 */
 	private void write(Object msg, boolean flush, ChannelPromise promise) {
 		ObjectUtil.checkNotNull(msg, "msg");
 		try {
@@ -728,13 +734,13 @@ abstract class AbstractChannelHandlerContext implements ChannelHandlerContext, R
 				(MASK_WRITE | MASK_FLUSH) : MASK_WRITE);	// 找到pipeline中前一个ChannelHandlerContext
 		final Object m = pipeline.touch(msg, next); // 引用计数用的 用来检测内存泄露
 		EventExecutor executor = next.executor();
-		if (executor.inEventLoop()) {
+		if (executor.inEventLoop()) {	// 是NioEventLoop线程直接调用
 			if (flush) {
 				next.invokeWriteAndFlush(m, promise);
 			} else {
 				next.invokeWrite(m, promise);
 			}
-		} else {
+		} else {	// 不是NioEventLoop线程调用 需要启动新的线程加入到任务队列 保证线程安全
 			final WriteTask task = WriteTask.newInstance(next, m, promise, flush);
 			if (!safeExecute(executor, task, promise, m, !flush)) {
 				// We failed to submit the WriteTask. We need to cancel it so we decrement the pending bytes

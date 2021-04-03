@@ -192,7 +192,9 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
 
     final ByteBuffer _internalNioBuffer(int index, int length, boolean duplicate) {
         index = idx(index);
+        // JDK底层的ByteBuf
         ByteBuffer buffer = duplicate ? newInternalNioBuffer(memory) : internalNioBuffer();
+        // 将netty中ByteBuf的数据加入到JDK的ByteBuf中
         buffer.limit(index + length).position(index);
         return buffer;
     }
@@ -236,8 +238,10 @@ abstract class PooledByteBuf<T> extends AbstractReferenceCountedByteBuf {
     @Override
     public final int readBytes(GatheringByteChannel out, int length) throws IOException {
         checkReadableBytes(length);
+        // 将netty的ByteBuf的数据写入到JDK底层的ByteBuf中 返回写入的字节数
         int readBytes = out.write(_internalNioBuffer(readerIndex, length, false));
         readerIndex += readBytes;
+        // 返回向JDK底层写入的字节数
         return readBytes;
     }
 

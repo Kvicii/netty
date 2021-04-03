@@ -39,10 +39,12 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
+import java.nio.channels.GatheringByteChannel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.SocketChannel;
 import java.nio.channels.spi.SelectorProvider;
@@ -354,9 +356,18 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 		return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
 	}
 
+	/**
+	 * @param buf the {@link ByteBuf} from which the bytes should be written
+	 *            netty中自定义的ByteBuf
+	 * @return 向JDK底层写了多少字节
+	 * @throws Exception
+	 */
 	@Override
 	protected int doWriteBytes(ByteBuf buf) throws Exception {
 		final int expectedWrittenBytes = buf.readableBytes();
+		/**
+		 * 默认会调用到 {@link io.netty.buffer.PooledDirectByteBuf#readBytes(GatheringByteChannel, int)}
+		 */
 		return buf.readBytes(javaChannel(), expectedWrittenBytes);
 	}
 

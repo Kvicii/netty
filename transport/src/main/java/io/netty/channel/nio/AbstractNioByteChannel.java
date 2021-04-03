@@ -222,20 +222,26 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 	private int doWriteInternal(ChannelOutboundBuffer in, Object msg) throws Exception {
 		if (msg instanceof ByteBuf) {
 			ByteBuf buf = (ByteBuf) msg;
-			if (!buf.isReadable()) {
+			if (!buf.isReadable()) {	// 如果ByteBuf没有可写数据 将该指针指向的ByteBuf节点移除
 				in.remove();
 				return 0;
 			}
-
+			// 将ByteBuf中的数据写入Socket 返回向JDK底层写入的字节数
 			final int localFlushedAmount = doWriteBytes(buf);
-			if (localFlushedAmount > 0) {
+			if (localFlushedAmount > 0) {	// 如果发生了写入
 				in.progress(localFlushedAmount);
-				if (!buf.isReadable()) {
+				/**
+				 * 有可能不会把数据一次性全部写入到Socket中
+				 * 该if判断有可能为false 会通过外层的 {@link AbstractNioByteChannel#doWrite(ChannelOutboundBuffer)}  } 调用自旋不断的尝试
+				 * 提高吞吐量
+				 */
+				if (!buf.isReadable()) {	// 如果ByteBuf中的数据已经全部写入到JDK底层了
+					// 移除该ByteBuf节点
 					in.remove();
 				}
 				return 1;
 			}
-		} else if (msg instanceof FileRegion) {
+		} else if (msg instanceof FileRegion) {	// 文件系统写入
 			FileRegion region = (FileRegion) msg;
 			if (region.transferred() >= region.count()) {
 				in.remove();
@@ -261,6 +267,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 	protected void doWrite(ChannelOutboundBuffer in) throws Exception {
 		int writeSpinCount = config().getWriteSpinCount();
 		do {
+			// 获取flushedEntry指针指向的ByteBuf数据
 			Object msg = in.current();
 			if (msg == null) {
 				// Wrote all messages.
@@ -268,6 +275,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 				// Directly return here so incompleteWrite(...) is not called.
 				return;
 			}
+			// // 调用JDK底层API进行自旋写
 			writeSpinCount -= doWriteInternal(in, msg);
 		} while (writeSpinCount > 0);
 
@@ -276,12 +284,12 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 
 	@Override
 	protected final Object filterOutboundMessage(Object msg) {
-		if (msg instanceof ByteBuf) {
+		if (msg instanceof ByteBuf) {	// 如果msg是一个ByteBuf
 			ByteBuf buf = (ByteBuf) msg;
-			if (buf.isDirect()) {
+			if (buf.isDirect()) {	// 并且该msg是堆外内存 直接返回
 				return msg;
 			}
-
+			// 否则将堆内存转为堆外内存
 			return newDirectBuffer(buf);
 		}
 

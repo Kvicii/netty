@@ -90,6 +90,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     /**
      * Returns {@code true} if the given message should be handled. If {@code false} it will be passed to the next
      * {@link ChannelOutboundHandler} in the {@link ChannelPipeline}.
+     * <p>
+     * 匹配对象
      */
     public boolean acceptOutboundMessage(Object msg) throws Exception {
         return matcher.match(msg);
@@ -99,24 +101,31 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
         ByteBuf buf = null;
         try {
-            if (acceptOutboundMessage(msg)) {
+            if (acceptOutboundMessage(msg)) {	// 当前Encoder能处理这个msg
                 @SuppressWarnings("unchecked")
                 I cast = (I) msg;
+                // 调用内存分配器进行内存分配
                 buf = allocateBuffer(ctx, cast, preferDirect);
                 try {
+                    // 将msg数据写入到ByteBuf
                     encode(ctx, cast, buf);
                 } finally {
+                    // 释放msg对象(仅当msg是ByteBuf类型)
                     ReferenceCountUtil.release(cast);
                 }
 
-                if (buf.isReadable()) {
+                if (buf.isReadable()) { // 如果ByteBuf可读 说明已经写入了数据
+                    // 通过Pipeline向Head方向进行传播 自定义的Encoder一般不会对ByteBuf进行Encode 最终会传播到Head节点
                     ctx.write(buf, promise);
-                } else {
+                } else {    // ByteBuf不可读
+                    // 释放ByteBuf内存
                     buf.release();
+                    // 写一个空的ByteBuf 本质上没做什么
                     ctx.write(Unpooled.EMPTY_BUFFER, promise);
                 }
+                // 将ByteBuf置空
                 buf = null;
-            } else {
+            } else {    // 当前Encoder无法处理该msg 通过Pipeline向Head方向传播
                 ctx.write(msg, promise);
             }
         } catch (EncoderException e) {
@@ -124,7 +133,8 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
         } catch (Throwable e) {
             throw new EncoderException(e);
         } finally {
-            if (buf != null) {
+            if (buf != null) {  // 如果ByteBuf不为空 说明Pipeline传播过程中出现了异常
+            	// 释放ByteBuf
                 buf.release();
             }
         }
@@ -136,9 +146,9 @@ public abstract class MessageToByteEncoder<I> extends ChannelOutboundHandlerAdap
      */
     protected ByteBuf allocateBuffer(ChannelHandlerContext ctx, @SuppressWarnings("unused") I msg,
                                boolean preferDirect) throws Exception {
-        if (preferDirect) {
+        if (preferDirect) { // 堆外内存分配(默认)
             return ctx.alloc().ioBuffer();
-        } else {
+        } else {    // 堆内存分配
             return ctx.alloc().heapBuffer();
         }
     }

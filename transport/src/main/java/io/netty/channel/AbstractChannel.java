@@ -916,7 +916,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             try {
                 /**
-                 * 调用到 如{@link AbstractNioChannel#doBeginRead()} 方法
+                 * 调用到 如 {@link io.netty.channel.nio.AbstractNioChannel#doBeginRead()} 方法
                  */
                 doBeginRead();
             } catch (final Exception e) {
@@ -952,6 +952,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
 
             int size;
             try {
+                /**
+                 * 1.非堆外内存到堆外内存的转换
+                 * 调用到 {@link io.netty.channel.nio.AbstractNioByteChannel#filterOutboundMessage(Object)}
+                 */
                 msg = filterOutboundMessage(msg);
                 size = pipeline.estimatorHandle().size(msg);
                 if (size < 0) {
@@ -966,7 +970,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
-            outboundBuffer.addMessage(msg, size, promise);  // 将消息放到buffer
+            outboundBuffer.addMessage(msg, size, promise);  // 2.将消息放到buffer
         }
 
         @Override
@@ -978,13 +982,16 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                 return;
             }
 
+            // 1.添加刷新标志并设置写状态
             outboundBuffer.addFlush();  // 将要发送(unflushedEntry)的数据转移到发送的区域(flushedEntry)
+            // 2.遍历ByteBuf队列 过滤出ByteBuf
+            // 3.调用JDK底层API进行自旋写
             flush0();
         }
 
         @SuppressWarnings("deprecation")
         protected void flush0() {
-            if (inFlush0) {
+            if (inFlush0) { // 如果正在flush就直接返回 避免重入
                 // Avoid re-entrance
                 return;
             }
@@ -1015,6 +1022,10 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             }
 
             try {
+                /**
+				 * 3.调用JDK底层API进行自旋写
+                 * 调用到 {@link io.netty.channel.nio.AbstractNioByteChannel#doWrite(ChannelOutboundBuffer)} 方法
+                 */
                 doWrite(outboundBuffer);
             } catch (Throwable t) {
                 handleWriteError(t);
