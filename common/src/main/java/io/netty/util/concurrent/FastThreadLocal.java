@@ -38,6 +38,8 @@ import java.util.Set;
  * {@link ThreadLocal}.
  * </p>
  *
+ * 解决线程的变量隔离
+ *
  * @param <V> the type of the thread-local variable
  * @see ThreadLocal
  */

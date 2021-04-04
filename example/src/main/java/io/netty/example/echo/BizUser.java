@@ -1,5 +1,7 @@
 package io.netty.example.echo;
 
+import io.netty.util.Recycler;
+
 public class BizUser {
 
 	private Integer age;
@@ -9,9 +11,19 @@ public class BizUser {
 	public BizUser() {
 	}
 
+	public BizUser(Recycler.Handle<BizUser> handle) {
+		this.handle = handle;
+	}
+
 	public BizUser(Integer age, String name) {
 		this.age = age;
 		this.name = name;
+	}
+
+	private Recycler.Handle<BizUser> handle;
+
+	public void recycle() {
+		handle.recycle(this);
 	}
 
 	public Integer getAge() {
