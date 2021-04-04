@@ -40,8 +40,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap {
 
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(InternalThreadLocalMap.class);
-    private static final ThreadLocal<InternalThreadLocalMap> slowThreadLocalMap =
-            new ThreadLocal<InternalThreadLocalMap>();
+    private static final ThreadLocal<InternalThreadLocalMap> slowThreadLocalMap = new ThreadLocal<>();
+    // 每次获取时进行递增
     private static final AtomicInteger nextIndex = new AtomicInteger();
 
     private static final int DEFAULT_ARRAY_LIST_INITIAL_CAPACITY = 8;
@@ -96,24 +96,29 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public static InternalThreadLocalMap get() {
         Thread thread = Thread.currentThread();
+        // 判断当前线程是否是FastThreadLocalThread
         if (thread instanceof FastThreadLocalThread) {
+            // 直接通过线程内部获取
             return fastGet((FastThreadLocalThread) thread);
         } else {
+            // 通过JDK的ThreadLocal获取
             return slowGet();
         }
     }
 
     private static InternalThreadLocalMap fastGet(FastThreadLocalThread thread) {
+        // ThreadLocalMap变量存储在线程内部 每次从线程中获取 不需要通过JDK的ThreadLocal
         InternalThreadLocalMap threadLocalMap = thread.threadLocalMap();
-        if (threadLocalMap == null) {
+        if (threadLocalMap == null) {   // 如果获取到null 直接创建一个放入线程内部
             thread.setThreadLocalMap(threadLocalMap = new InternalThreadLocalMap());
         }
         return threadLocalMap;
     }
 
     private static InternalThreadLocalMap slowGet() {
+    	// 通过JDK的ThreadLocal获取当前线程的ThreadLocalMap
         InternalThreadLocalMap ret = slowThreadLocalMap.get();
-        if (ret == null) {
+        if (ret == null) {  // 如果是null 创建一个ThreadLocalMap放入JDK的ThreadLocal
             ret = new InternalThreadLocalMap();
             slowThreadLocalMap.set(ret);
         }
@@ -133,6 +138,11 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
         slowThreadLocalMap.remove();
     }
 
+    /**
+     * 获取 n - 1 的数
+     *
+     * @return 返回 n - 1
+     */
     public static int nextVariableIndex() {
         int index = nextIndex.getAndIncrement();
         if (index < 0) {
@@ -310,7 +320,7 @@ public final class InternalThreadLocalMap extends UnpaddedInternalThreadLocalMap
 
     public Object indexedVariable(int index) {
         Object[] lookup = indexedVariables;
-        return index < lookup.length? lookup[index] : UNSET;
+        return index < lookup.length ? lookup[index] : UNSET;
     }
 
     /**
