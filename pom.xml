@@ -27,7 +27,7 @@
   <groupId>io.netty</groupId>
   <artifactId>netty-parent</artifactId>
   <packaging>pom</packaging>
-  <version>4.1.61.Final-SNAPSHOT</version>
+  <version>4.1.64.Final-SNAPSHOT</version>
 
   <name>Netty</name>
   <url>https://netty.io/</url>
@@ -382,8 +382,8 @@
     <!-- keep in sync with PlatformDependent#ALLOWED_LINUX_OS_CLASSIFIERS -->
     <os.detection.classifierWithLikes>fedora,suse,arch</os.detection.classifierWithLikes>
     <tcnative.artifactId>netty-tcnative</tcnative.artifactId>
-    <tcnative.version>2.0.36.Final</tcnative.version>
     <tcnative.classifier>osx-x86_64</tcnative.classifier>
+    <tcnative.version>2.0.38.Final</tcnative.version>
 <!--    <tcnative.classifier>${os.detected.classifier}</tcnative.classifier>-->
     <conscrypt.groupId>org.conscrypt</conscrypt.groupId>
     <conscrypt.artifactId>conscrypt-openjdk-uber</conscrypt.artifactId>
@@ -405,6 +405,7 @@
     <!-- By default skip native testsuite as it requires a custom environment with graalvm installed -->
     <skipNativeImageTestsuite>true</skipNativeImageTestsuite>
     <skipShadingTestsuite>false</skipShadingTestsuite>
+    <skipDeploy>false</skipDeploy>
   </properties>
 
   <modules>
@@ -1178,6 +1179,7 @@
         <version>2.8.2</version>
         <configuration>
           <retryFailedDeploymentCount>10</retryFailedDeploymentCount>
+          <skip>${skipDeploy}</skip>
         </configuration>
       </plugin>
       <!-- After artifacts were deployed from linux and macos we need to execute the following on macOS (in the root of the project).
