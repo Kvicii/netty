@@ -31,17 +31,18 @@ import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder.MultiPartSta
 import io.netty.handler.codec.http.multipart.HttpPostRequestDecoder.NotEnoughDataDecoderException;
 import io.netty.util.CharsetUtil;
 import io.netty.util.internal.InternalThreadLocalMap;
+import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.StringUtil;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
 import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
-import static io.netty.buffer.Unpooled.EMPTY_BUFFER;
 import static io.netty.util.internal.ObjectUtil.*;
 
 /**
@@ -178,30 +179,38 @@ public class HttpPostMultipartRequestDecoder implements InterfaceHttpPostRequest
         this.factory = checkNotNull(factory, "factory");
         // Fill default values
 
-        setMultipart(this.request.headers().get(HttpHeaderNames.CONTENT_TYPE));
-        if (request instanceof HttpContent) {
-            // Offer automatically if the given request is als type of HttpContent
-            // See #1089
-            offer((HttpContent) request);
-        } else {
-            parseBody();
+        String contentTypeValue = this.request.headers().get(HttpHeaderNames.CONTENT_TYPE);
+        if (contentTypeValue == null) {
+            throw new ErrorDataDecoderException("No '" + HttpHeaderNames.CONTENT_TYPE + "' header present.");
         }
-    }
 
-    /**
-     * Set from the request ContentType the multipartDataBoundary and the possible charset.
-     */
-    private void setMultipart(String contentType) {
-        String[] dataBoundary = HttpPostRequestDecoder.getMultipartDataBoundary(contentType);
+        String[] dataBoundary = HttpPostRequestDecoder.getMultipartDataBoundary(contentTypeValue);
         if (dataBoundary != null) {
             multipartDataBoundary = dataBoundary[0];
             if (dataBoundary.length > 1 && dataBoundary[1] != null) {
-                charset = Charset.forName(dataBoundary[1]);
+                try {
+                    this.charset = Charset.forName(dataBoundary[1]);
+                } catch (IllegalCharsetNameException e) {
+                    throw new ErrorDataDecoderException(e);
+                }
             }
         } else {
             multipartDataBoundary = null;
         }
         currentStatus = MultiPartStatus.HEADERDELIMITER;
+
+        try {
+            if (request instanceof HttpContent) {
+                // Offer automatically if the given request is als type of HttpContent
+                // See #1089
+                offer((HttpContent) request);
+            } else {
+                parseBody();
+            }
+        } catch (Throwable e) {
+            destroy();
+            PlatformDependent.throwException(e);
+        }
     }
 
     private void checkDestroyed() {
@@ -326,13 +335,8 @@ public class HttpPostMultipartRequestDecoder implements InterfaceHttpPostRequest
 
         ByteBuf buf = content.content();
         if (undecodedChunk == null) {
-            undecodedChunk = isLastChunk ?
-                    // Take a slice instead of copying when the first chunk is also the last
-                    // as undecodedChunk.writeBytes will never be called.
-                    buf.retainedSlice() :
-                    // Maybe we should better not copy here for performance reasons but this will need
-                    // more care by the caller to release the content in a correct manner later
-                    // So maybe something to optimize on a later stage
+            undecodedChunk =
+                    // Since the Handler will release the incoming later on, we need to copy it
                     //
                     // We are explicit allocate a buffer and NOT calling copy() as otherwise it may set a maxCapacity
                     // which is not really usable for us as we may exceed it once we add more bytes.
@@ -948,8 +952,15 @@ public class HttpPostMultipartRequestDecoder implements InterfaceHttpPostRequest
      */
     @Override
     public void destroy() {
-        // Release all data items, including those not yet pulled
+        // Release all data items, including those not yet pulled, only file based items
         cleanFiles();
+        // Clean Memory based data
+        for (InterfaceHttpData httpData : bodyListHttpData) {
+            // Might have been already released by the user
+            if (httpData.refCnt() > 0) {
+                httpData.release();
+            }
+        }
 
         destroyed = true;
 
