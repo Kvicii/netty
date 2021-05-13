@@ -7,6 +7,9 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240
+
 jobs:
   verify-pr:
     runs-on: ubuntu-18.04
@@ -17,17 +20,16 @@ jobs:
         with:
           java-version: 8
       # Cache .m2/repository
-      - uses: actions/cache@v2
-        env:
-          cache-name: verify-cache-m2-repository
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-pr-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-verify-pr-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-pr-${{ env.cache-name }}-
-            ${{ runner.os }}-pr-
+            ${{ runner.os }}-maven-verify-pr-
+            ${{ runner.os }}-maven-
       - name: Verify with Maven
-        run: mvn verify -B --file pom.xml -DskipTests=true
+        run: ./mvnw verify -B --file pom.xml -DskipTests=true
 
   build-pr-aarch64:
     name: linux-aarch64-verify-native
@@ -38,15 +40,14 @@ jobs:
       - uses: actions/checkout@v2
 
       # Cache .m2/repository
-      - uses: actions/cache@v2
-        env:
-          cache-name: build-pr-aarch64-cache-m2-repository
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-pr-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-build-pr-aarch64-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-pr-${{ env.cache-name }}-
-            ${{ runner.os }}-pr-
+            ${{ runner.os }}-maven-build-pr-aarch64-
+            ${{ runner.os }}-maven-
 
       - uses: uraimo/run-on-arch-action@v2.0.9
         name: Run commands
@@ -73,7 +74,7 @@ jobs:
           #
           # Use tcnative.classifier that is empty as we don't support using the shared lib version on ubuntu.
           run: |
-            JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64 mvn -pl testsuite-native -am clean package -DskipTests=true -Dcheckstyle.skip=true -DskipNativeTestsuite=false -Dtcnative.classifier=
+            JAVA_HOME=/usr/lib/jvm/java-11-openjdk-arm64 ./mvnw -pl testsuite-native -am clean package -DskipTests=true -Dcheckstyle.skip=true -DskipNativeTestsuite=false -Dtcnative.classifier=
 
   build-pr:
     runs-on: ubuntu-latest
@@ -86,9 +87,9 @@ jobs:
           - setup: linux-x86_64-java11
             docker-compose-build: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.111.yaml build"
             docker-compose-run: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.111.yaml run build-leak"
-          - setup: linux-x86_64-java15
-            docker-compose-build: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.115.yaml build"
-            docker-compose-run: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.115.yaml run build-leak"
+          - setup: linux-x86_64-java16
+            docker-compose-build: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.116.yaml build"
+            docker-compose-run: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.116.yaml run build-leak"
           - setup: linux-x86_64-java11-boringssl
             docker-compose-build: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.111.yaml build"
             docker-compose-run: "-f docker/docker-compose.yaml -f docker/docker-compose.centos-6.111.yaml run build-leak-boringssl-static"
@@ -99,23 +100,23 @@ jobs:
       - uses: actions/checkout@v2
 
       # Cache .m2/repository
-      - uses: actions/cache@v2
-        env:
-          cache-name: build-${{ matrix.setup }}-cache-m2-repository
+      - name: Cache local Maven repository
+        uses: actions/cache@v2
         with:
           path: ~/.m2/repository
-          key: ${{ runner.os }}-pr-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+          key: ${{ runner.os }}-maven-${{ matrix.setup }}-${{ hashFiles('**/pom.xml') }}
           restore-keys: |
-            ${{ runner.os }}-pr-${{ env.cache-name }}-
-            ${{ runner.os }}-pr-
+            ${{ runner.os }}-maven-${{ matrix.setup }}-
+            ${{ runner.os }}-maven-
 
       # Enable caching of Docker layers
       - uses: satackey/action-docker-layer-caching@v0.0.11
         continue-on-error: true
         with:
-          key: build-${{ matrix.setup }}-docker-cache-{hash}
+          key: build-docker-cache-${{ matrix.setup }}-{hash}
           restore-keys: |
-            build-${{ matrix.setup }}-docker-cache-
+            build-docker-cache-${{ matrix.setup }}-
+            build-docker-cache-
 
       - name: Build docker image
         run: docker-compose ${{ matrix.docker-compose-build }}

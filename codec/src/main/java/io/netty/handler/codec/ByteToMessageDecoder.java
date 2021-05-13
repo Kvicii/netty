@@ -454,7 +454,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
         try {
             while (in.isReadable()) {   // 只要累加器还有数据可以读 就不会退出循环
                 // 存放解析结果的List的大小
-                int outSize = out.size();
+                final int outSize = out.size();
 
                 if (outSize > 0) {
                     // 如果已经有解析出来的对象了 在Pipeline中向下进行传播
@@ -470,7 +470,6 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                     if (ctx.isRemoved()) {
                         break;
                     }
-                    outSize = 0;
                 }
                 // 记录数据的可读长度
                 int oldInputLength = in.readableBytes();
@@ -486,7 +485,7 @@ public abstract class ByteToMessageDecoder extends ChannelInboundHandlerAdapter 
                 }
 
                 // 如果什么数据都没有解析出来
-                if (outSize == out.size()) {
+                if (out.isEmpty()) {
                     if (oldInputLength == in.readableBytes()) { // 没有读取到任何数据 当前累加器中的数据不能拼成一个完整的数据包
                         // 本次读取没有凑成一个完整的数据包 只能等到下次读取再读取一点数据再尝试进行解析
                         break;

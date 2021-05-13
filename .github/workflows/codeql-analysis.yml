@@ -14,6 +14,9 @@ on:
   schedule:
     - cron: '0 13 * * 3'
 
+env:
+  MAVEN_OPTS: -Dhttp.keepAlive=false -Dmaven.wagon.http.pool=false -Dmaven.wagon.http.retryhandler.count=5 -Dmaven.wagon.httpconnectionManager.ttlSeconds=240
+
 jobs:
   analyze:
     name: Analyze
@@ -37,15 +40,14 @@ jobs:
         fetch-depth: 2
 
     # Cache .m2/repository
-    - uses: actions/cache@v2
-      env:
-        cache-name: verify-cache-m2-repository
+    - name: Cache local Maven repository
+      uses: actions/cache@v2
       with:
         path: ~/.m2/repository
-        key: ${{ runner.os }}-pr-${{ env.cache-name }}-${{ hashFiles('**/pom.xml') }}
+        key: ${{ runner.os }}-maven-${{ matrix.language }} ${{ hashFiles('**/pom.xml') }}
         restore-keys: |
-          ${{ runner.os }}-pr-${{ env.cache-name }}-
-          ${{ runner.os }}-pr-
+          ${{ runner.os }}-maven-${{ matrix.language }}
+          ${{ runner.os }}-maven-
 
     # If this run was triggered by a pull request event, then checkout
     # the head of the pull request instead of the merge commit.
@@ -74,7 +76,8 @@ jobs:
     #    and modify them (or add more) to build your code if your project
     #    uses a compiled language
 
-    - run: ./mvnw clean package -DskipTests=true -ntp -B
+    - name: Compile project
+      run: ./mvnw clean package -DskipTests=true -ntp -B
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v1

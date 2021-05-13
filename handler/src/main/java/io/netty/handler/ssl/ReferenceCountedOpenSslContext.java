@@ -84,8 +84,9 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
     private static final int DEFAULT_BIO_NON_APPLICATION_BUFFER_SIZE = Math.max(1,
             SystemPropertyUtil.getInt("io.netty.handler.ssl.openssl.bioNonApplicationBufferSize",
                     2048));
+    // Let's use tasks by default but still allow the user to disable it via system property just in case.
     static final boolean USE_TASKS =
-            SystemPropertyUtil.getBoolean("io.netty.handler.ssl.openssl.useTasks", false);
+            SystemPropertyUtil.getBoolean("io.netty.handler.ssl.openssl.useTasks", true);
     private static final Integer DH_KEY_LENGTH;
     private static final ResourceLeakDetector<ReferenceCountedOpenSslContext> leakDetector =
             ResourceLeakDetectorFactory.instance().newResourceLeakDetector(ReferenceCountedOpenSslContext.class);
@@ -297,6 +298,11 @@ public abstract class ReferenceCountedOpenSslContext extends SslContext implemen
             int options = SSLContext.getOptions(ctx) |
                           SSL.SSL_OP_NO_SSLv2 |
                           SSL.SSL_OP_NO_SSLv3 |
+                          // Disable TLSv1 and TLSv1.1 by default as these are not considered secure anymore
+                          // and the JDK is doing the same:
+                          // https://www.oracle.com/java/technologies/javase/8u291-relnotes.html
+                          SSL.SSL_OP_NO_TLSv1 |
+                          SSL.SSL_OP_NO_TLSv1_1 |
 
                           SSL.SSL_OP_CIPHER_SERVER_PREFERENCE |
 
