@@ -303,9 +303,11 @@ public class IdleStateHandler extends ChannelDuplexHandler {
         // Avoid the case where destroy() is called before scheduling timeouts.
         // See: https://github.com/netty/netty/issues/143
         switch (state) {
-            case 1:
-            case 2:
-                return;
+        case 1:
+        case 2:
+            return;
+        default:
+             break;
         }
 
         state = 1;

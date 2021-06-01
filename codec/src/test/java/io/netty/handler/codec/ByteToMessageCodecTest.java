@@ -20,24 +20,36 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.embedded.EmbeddedChannel;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.Executable;
 
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ByteToMessageCodecTest {
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testSharable() {
-        new InvalidByteToMessageCodec();
+        assertThrows(IllegalStateException.class, new Executable() {
+            @Override
+            public void execute() {
+                new InvalidByteToMessageCodec();
+            }
+        });
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test
     public void testSharable2() {
-        new InvalidByteToMessageCodec2();
+        assertThrows(IllegalStateException.class, new Executable() {
+            @Override
+            public void execute() {
+                new InvalidByteToMessageCodec2();
+            }
+        });
     }
 
     @Test
@@ -64,7 +76,7 @@ public class ByteToMessageCodecTest {
         assertTrue(ch.writeInbound(buffer));
         ch.pipeline().remove(codec);
         assertTrue(ch.finish());
-//        assertEquals(1, ch.readInbound());
+        assertEquals(1, ch.readInbound());
 
         ByteBuf buf = ch.readInbound();
         assertEquals(Unpooled.wrappedBuffer(new byte[]{'0'}), buf);
@@ -80,12 +92,10 @@ public class ByteToMessageCodecTest {
         }
 
         @Override
-        protected void encode(ChannelHandlerContext ctx, Integer msg, ByteBuf out) {
-        }
+        protected void encode(ChannelHandlerContext ctx, Integer msg, ByteBuf out) throws Exception { }
 
         @Override
-        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        }
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception { }
     }
 
     @ChannelHandler.Sharable
@@ -95,11 +105,9 @@ public class ByteToMessageCodecTest {
         }
 
         @Override
-        protected void encode(ChannelHandlerContext ctx, Integer msg, ByteBuf out) {
-        }
+        protected void encode(ChannelHandlerContext ctx, Integer msg, ByteBuf out) throws Exception { }
 
         @Override
-        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) {
-        }
+        protected void decode(ChannelHandlerContext ctx, ByteBuf in, List<Object> out) throws Exception { }
     }
 }
