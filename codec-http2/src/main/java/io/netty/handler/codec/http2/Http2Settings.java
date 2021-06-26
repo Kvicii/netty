@@ -15,8 +15,9 @@
 
 package io.netty.handler.codec.http2;
 
-import io.netty.util.collection.CharObjectHashMap;
 import io.netty.util.internal.UnstableApi;
+
+import java.util.HashMap;
 
 import static io.netty.handler.codec.http2.Http2CodecUtil.DEFAULT_HEADER_LIST_SIZE;
 import static io.netty.handler.codec.http2.Http2CodecUtil.MAX_CONCURRENT_STREAMS;
@@ -43,12 +44,12 @@ import static io.netty.util.internal.ObjectUtil.checkNotNull;
  * methods for standard settings.
  */
 @UnstableApi
-public final class Http2Settings extends CharObjectHashMap<Long> {
+public final class Http2Settings extends HashMap<Character, Long> {
     /**
      * Default capacity based on the number of standard settings from the HTTP/2 spec, adjusted so that adding all of
      * the standard settings will not cause the map capacity to change.
      */
-    private static final int DEFAULT_CAPACITY = (int) (NUM_STANDARD_SETTINGS / DEFAULT_LOAD_FACTOR) + 1;
+    private static final int DEFAULT_CAPACITY = (int) (NUM_STANDARD_SETTINGS / 0.75f) + 1;
     private static final Long FALSE = 0L;
     private static final Long TRUE = 1L;
 
@@ -70,7 +71,6 @@ public final class Http2Settings extends CharObjectHashMap<Long> {
      *
      * @throws IllegalArgumentException if verification for a standard HTTP/2 setting fails.
      */
-    @Override
     public Long put(char key, Long value) {
         verifyStandardSetting(key, value);
         return super.put(key, value);
@@ -243,7 +243,6 @@ public final class Http2Settings extends CharObjectHashMap<Long> {
         }
     }
 
-    @Override
     protected String keyToString(char key) {
         switch (key) {
             case SETTINGS_HEADER_TABLE_SIZE:
@@ -260,7 +259,8 @@ public final class Http2Settings extends CharObjectHashMap<Long> {
                 return "MAX_HEADER_LIST_SIZE";
             default:
                 // Unknown keys.
-                return super.keyToString(key);
+                // return super.keyToString(key);
+                return "";
         }
     }
 

@@ -18,8 +18,6 @@ package io.netty.handler.codec.redis;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.util.CharsetUtil;
-import io.netty.util.collection.LongObjectHashMap;
-import io.netty.util.collection.LongObjectMap;
 import io.netty.util.internal.UnstableApi;
 
 import java.util.HashMap;
@@ -87,8 +85,8 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
     private final Map<String, ErrorRedisMessage> stringToErrors;
     private final Map<RedisErrorKey, ErrorRedisMessage> keyToErrors;
     private final Map<ByteBuf, IntegerRedisMessage> byteBufToIntegers;
-    private final LongObjectMap<IntegerRedisMessage> longToIntegers;
-    private final LongObjectMap<byte[]> longToByteBufs;
+    private final Map<Long, IntegerRedisMessage> longToIntegers;
+    private final Map<Long, byte[]> longToByteBufs;
 
     /**
      * Creates a {@link FixedRedisMessagePool} instance.
@@ -121,8 +119,8 @@ public final class FixedRedisMessagePool implements RedisMessagePool {
         }
 
         byteBufToIntegers = new HashMap<ByteBuf, IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
-        longToIntegers = new LongObjectHashMap<IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
-        longToByteBufs = new LongObjectHashMap<byte[]>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
+        longToIntegers = new HashMap<Long, IntegerRedisMessage>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
+        longToByteBufs = new HashMap<Long, byte[]>(SIZE_CACHED_INTEGER_NUMBER, 1.0f);
         for (long value = MIN_CACHED_INTEGER_NUMBER; value < MAX_CACHED_INTEGER_NUMBER; value++) {
             byte[] keyBytes = RedisCodecUtil.longToAsciiBytes(value);
             ByteBuf keyByteBuf = Unpooled.unreleasableBuffer(Unpooled.wrappedBuffer(keyBytes)).asReadOnly();

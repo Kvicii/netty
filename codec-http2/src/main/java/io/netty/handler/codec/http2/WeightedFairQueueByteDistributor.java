@@ -14,9 +14,6 @@
  */
 package io.netty.handler.codec.http2;
 
-import io.netty.util.collection.IntCollections;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.DefaultPriorityQueue;
 import io.netty.util.internal.EmptyPriorityQueue;
 import io.netty.util.internal.MathUtil;
@@ -27,9 +24,12 @@ import io.netty.util.internal.UnstableApi;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import static io.netty.handler.codec.http2.Http2CodecUtil.CONNECTION_STREAM_ID;
 import static io.netty.handler.codec.http2.Http2CodecUtil.DEFAULT_MIN_ALLOCATION_CHUNK;
@@ -78,7 +78,7 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
      * If there is no Http2Stream object, but we still persist priority information then this is where the state will
      * reside.
      */
-    private final IntObjectMap<State> stateOnlyMap;
+    private final Map<Integer, State> stateOnlyMap;
     /**
      * This queue will hold streams that are not active and provides the capability to retain priority for streams which
      * have no {@link Http2Stream} object. See {@link StateOnlyComparator} for the priority comparator.
@@ -100,10 +100,10 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
     public WeightedFairQueueByteDistributor(Http2Connection connection, int maxStateOnlySize) {
         checkPositiveOrZero(maxStateOnlySize, "maxStateOnlySize");
         if (maxStateOnlySize == 0) {
-            stateOnlyMap = IntCollections.emptyMap();
+            stateOnlyMap = Collections.emptyMap();
             stateOnlyRemovalQueue = EmptyPriorityQueue.instance();
         } else {
-            stateOnlyMap = new IntObjectHashMap<State>(maxStateOnlySize);
+            stateOnlyMap = new HashMap<Integer, State>(maxStateOnlySize);
             // +2 because we may exceed the limit by 2 if a new dependency has no associated Http2Stream object. We need
             // to create the State objects to put them into the dependency tree, which then impacts priority.
             stateOnlyRemovalQueue = new DefaultPriorityQueue<State>(StateOnlyComparator.INSTANCE, maxStateOnlySize + 2);
@@ -448,7 +448,7 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
          */
         Http2Stream stream;
         State parent;
-        IntObjectMap<State> children = IntCollections.emptyMap();
+        Map<Integer, State> children = Collections.emptyMap();
         private final PriorityQueue<State> pseudoTimeQueue;
         final int streamId;
         int streamableBytes;
@@ -508,7 +508,7 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
          * Adds a child to this priority. If exclusive is set, any children of this node are moved to being dependent on
          * the child.
          */
-        void takeChild(Iterator<IntObjectMap.PrimitiveEntry<State>> childItr, State child, boolean exclusive,
+        void takeChild(Iterator<Map.Entry<Integer, State>> childItr, State child, boolean exclusive,
                        List<ParentChangedEvent> events) {
             State oldParent = child.parent;
 
@@ -534,9 +534,9 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
             if (exclusive && !children.isEmpty()) {
                 // If it was requested that this child be the exclusive dependency of this node,
                 // move any previous children to the child node, becoming grand children of this node.
-                Iterator<IntObjectMap.PrimitiveEntry<State>> itr = removeAllChildrenExcept(child).entries().iterator();
+                Iterator<Map.Entry<Integer, State>> itr = removeAllChildrenExcept(child).entrySet().iterator();
                 while (itr.hasNext()) {
-                    child.takeChild(itr, itr.next().value(), false, events);
+                    child.takeChild(itr, itr.next().getValue(), false, events);
                 }
             }
         }
@@ -551,9 +551,9 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
                 child.setParent(null);
 
                 // Move up any grand children to be directly dependent on this node.
-                Iterator<IntObjectMap.PrimitiveEntry<State>> itr = child.children.entries().iterator();
+                Iterator<Map.Entry<Integer, State>> itr = child.children.entrySet().iterator();
                 while (itr.hasNext()) {
-                    takeChild(itr, itr.next().value(), false, events);
+                    takeChild(itr, itr.next().getValue(), false, events);
                 }
 
                 notifyParentChanged(events);
@@ -565,9 +565,9 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
          * This method is intended to be used to support an exclusive priority dependency operation.
          * @return The map of children prior to this operation, excluding {@code streamToRetain} if present.
          */
-        private IntObjectMap<State> removeAllChildrenExcept(State stateToRetain) {
+        private Map<Integer, State> removeAllChildrenExcept(State stateToRetain) {
             stateToRetain = children.remove(stateToRetain.streamId);
-            IntObjectMap<State> prevChildren = children;
+            Map<Integer, State> prevChildren = children;
             // This map should be re-initialized in anticipation for the 1 exclusive child which will be added.
             // It will either be added directly in this method, or after this method is called...but it will be added.
             initChildren();
@@ -589,13 +589,13 @@ public final class WeightedFairQueueByteDistributor implements StreamByteDistrib
         }
 
         private void initChildrenIfEmpty() {
-            if (children == IntCollections.<State>emptyMap()) {
+            if (children.equals(Collections.emptyMap())) {
                 initChildren();
             }
         }
 
         private void initChildren() {
-            children = new IntObjectHashMap<State>(INITIAL_CHILDREN_MAP_SIZE);
+            children = new HashMap<Integer, State>(INITIAL_CHILDREN_MAP_SIZE);
         }
 
         void write(int numBytes, Writer writer) throws Http2Exception {

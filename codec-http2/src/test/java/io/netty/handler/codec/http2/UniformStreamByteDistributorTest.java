@@ -15,8 +15,6 @@
 package io.netty.handler.codec.http2;
 
 import io.netty.handler.codec.http2.Http2TestUtil.TestStreamByteDistributorStreamState;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,6 +23,9 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.mockito.verification.VerificationMode;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.netty.handler.codec.http2.Http2CodecUtil.DEFAULT_MIN_ALLOCATION_CHUNK;
 import static io.netty.handler.codec.http2.Http2CodecUtil.DEFAULT_PRIORITY_WEIGHT;
@@ -58,7 +59,7 @@ public class UniformStreamByteDistributorTest {
 
     private Http2Connection connection;
     private UniformStreamByteDistributor distributor;
-    private IntObjectMap<TestStreamByteDistributorStreamState> stateMap;
+    private Map<Integer, TestStreamByteDistributorStreamState> stateMap;
 
     @Mock
     private StreamByteDistributor.Writer writer;
@@ -67,7 +68,7 @@ public class UniformStreamByteDistributorTest {
     public void setup() throws Http2Exception {
         MockitoAnnotations.initMocks(this);
 
-        stateMap = new IntObjectHashMap<TestStreamByteDistributorStreamState>();
+        stateMap = new HashMap<Integer, TestStreamByteDistributorStreamState>();
         connection = new DefaultHttp2Connection(false);
         distributor = new UniformStreamByteDistributor(connection);
 

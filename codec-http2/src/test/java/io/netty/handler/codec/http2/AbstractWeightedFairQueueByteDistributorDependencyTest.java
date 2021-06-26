@@ -15,17 +15,18 @@
 package io.netty.handler.codec.http2;
 
 import io.netty.handler.codec.http2.Http2TestUtil.TestStreamByteDistributorStreamState;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import java.util.HashMap;
+import java.util.Map;
+
 abstract class AbstractWeightedFairQueueByteDistributorDependencyTest {
     Http2Connection connection;
     WeightedFairQueueByteDistributor distributor;
-    private IntObjectMap<TestStreamByteDistributorStreamState> stateMap =
-            new IntObjectHashMap<TestStreamByteDistributorStreamState>();
+    private Map<Integer, TestStreamByteDistributorStreamState> stateMap =
+            new HashMap<Integer, TestStreamByteDistributorStreamState>();
 
     @Mock
     StreamByteDistributor.Writer writer;

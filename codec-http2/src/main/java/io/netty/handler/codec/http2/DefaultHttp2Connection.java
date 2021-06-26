@@ -18,9 +18,6 @@ package io.netty.handler.codec.http2;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http2.Http2Stream.State;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
-import io.netty.util.collection.IntObjectMap.PrimitiveEntry;
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.Promise;
 import io.netty.util.concurrent.UnaryPromiseNotifier;
@@ -32,9 +29,11 @@ import io.netty.util.internal.logging.InternalLoggerFactory;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Queue;
 import java.util.Set;
 
@@ -64,7 +63,7 @@ import static java.lang.Integer.MAX_VALUE;
 public class DefaultHttp2Connection implements Http2Connection {
     private static final InternalLogger logger = InternalLoggerFactory.getInstance(DefaultHttp2Connection.class);
     // Fields accessed by inner classes
-    final IntObjectMap<Http2Stream> streamMap = new IntObjectHashMap<Http2Stream>();
+    final Map<Integer, Http2Stream> streamMap = new HashMap<Integer, Http2Stream>();
     final PropertyKeyRegistry propertyKeyRegistry = new PropertyKeyRegistry();
     final ConnectionStream connectionStream = new ConnectionStream();
     final DefaultEndpoint<Http2LocalFlowController> localEndpoint;
@@ -137,14 +136,14 @@ public class DefaultHttp2Connection implements Http2Connection {
             return promise;
         }
 
-        Iterator<PrimitiveEntry<Http2Stream>> itr = streamMap.entries().iterator();
+        Iterator<Map.Entry<Integer, Http2Stream>> itr = streamMap.entrySet().iterator();
         // We must take care while iterating the streamMap as to not modify while iterating in case there are other code
         // paths iterating over the active streams.
         if (activeStreams.allowModifications()) {
             activeStreams.incrementPendingIterations();
             try {
                 while (itr.hasNext()) {
-                    DefaultStream stream = (DefaultStream) itr.next().value();
+                    DefaultStream stream = (DefaultStream) itr.next().getValue();
                     if (stream.id() != CONNECTION_STREAM_ID) {
                         // If modifications of the activeStream map is allowed, then a stream close operation will also
                         // modify the streamMap. Pass the iterator in so that remove will be called to prevent
@@ -157,7 +156,7 @@ public class DefaultHttp2Connection implements Http2Connection {
             }
         } else {
             while (itr.hasNext()) {
-                Http2Stream stream = itr.next().value();
+                Http2Stream stream = itr.next().getValue();
                 if (stream.id() != CONNECTION_STREAM_ID) {
                     // We are not allowed to make modifications, so the close calls will be executed after this
                     // iteration completes.

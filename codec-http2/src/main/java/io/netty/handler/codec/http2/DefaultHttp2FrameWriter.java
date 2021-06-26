@@ -25,6 +25,8 @@ import io.netty.handler.codec.http2.Http2HeadersEncoder.SensitivityDetector;
 import io.netty.util.internal.PlatformDependent;
 import io.netty.util.internal.UnstableApi;
 
+import java.util.Map;
+
 import static io.netty.buffer.Unpooled.directBuffer;
 import static io.netty.buffer.Unpooled.unreleasableBuffer;
 import static io.netty.handler.codec.http2.Http2CodecUtil.CONTINUATION_FRAME_HEADER_LENGTH;
@@ -312,9 +314,9 @@ public class DefaultHttp2FrameWriter implements Http2FrameWriter, Http2FrameSize
             int payloadLength = SETTING_ENTRY_LENGTH * settings.size();
             ByteBuf buf = ctx.alloc().buffer(FRAME_HEADER_LENGTH + payloadLength);
             writeFrameHeaderInternal(buf, payloadLength, SETTINGS, new Http2Flags(), 0);
-            for (Http2Settings.PrimitiveEntry<Long> entry : settings.entries()) {
-                buf.writeChar(entry.key());
-                buf.writeInt(entry.value().intValue());
+            for (Map.Entry<Character, Long> entry : settings.entrySet()) {
+                buf.writeChar(entry.getKey());
+                buf.writeInt(entry.getValue().intValue());
             }
             return ctx.write(buf, promise);
         } catch (Throwable t) {

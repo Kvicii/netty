@@ -15,7 +15,6 @@
 package io.netty.microbenchmark.common;
 
 import io.netty.microbench.util.AbstractMicrobenchmark;
-import io.netty.util.collection.IntObjectHashMap;
 import org.agrona.collections.Int2ObjectHashMap;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -25,7 +24,9 @@ import org.openjdk.jmh.annotations.Param;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.infra.Blackhole;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
@@ -157,7 +158,7 @@ public class IntObjectHashMapBenchmark extends AbstractMicrobenchmark {
     }
 
     private class NettyEnvironment extends Environment {
-        private final IntObjectHashMap<Long> map = new IntObjectHashMap<Long>();
+        private final Map<Integer, Long> map = new HashMap<Integer, Long>();
 
         NettyEnvironment() {
             for (int key : keys) {
@@ -167,7 +168,7 @@ public class IntObjectHashMapBenchmark extends AbstractMicrobenchmark {
 
         @Override
         void put(Blackhole bh) {
-            IntObjectHashMap<Long> map = new IntObjectHashMap<Long>();
+            Map<Integer, Long> map = new HashMap<Integer, Long>();
             for (int key : keys) {
                 bh.consume(map.put(key, VALUE));
             }
@@ -182,7 +183,7 @@ public class IntObjectHashMapBenchmark extends AbstractMicrobenchmark {
 
         @Override
         void remove(Blackhole bh) {
-            IntObjectHashMap<Long> copy = new IntObjectHashMap<Long>();
+            Map<Integer, Long> copy = new HashMap<Integer, Long>();
             copy.putAll(map);
             for (int key : keys) {
                 bh.consume(copy.remove(key));

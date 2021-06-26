@@ -15,12 +15,13 @@
  */
 package io.netty.handler.codec.mqtt;
 
-import io.netty.util.collection.IntObjectHashMap;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  * MQTT Properties container
@@ -290,7 +291,7 @@ public final class MqttProperties {
         this.canModify = canModify;
     }
 
-    private IntObjectHashMap<MqttProperty> props;
+    private Map<Integer, MqttProperty> props;
     private List<UserProperty> userProperties;
     private List<IntegerProperty> subscriptionIds;
     private final boolean canModify;
@@ -299,7 +300,7 @@ public final class MqttProperties {
         if (!canModify) {
             throw new UnsupportedOperationException("adding property isn't allowed");
         }
-        IntObjectHashMap<MqttProperty> props = this.props;
+        Map<Integer, MqttProperty> props = this.props;
         if (property.propertyId == MqttPropertyType.USER_PROPERTY.value) {
             List<UserProperty> userProperties = this.userProperties;
             if (userProperties == null) {
@@ -328,7 +329,7 @@ public final class MqttProperties {
             }
         } else {
             if (props == null) {
-                props = new IntObjectHashMap<MqttProperty>();
+                props = new HashMap<Integer, MqttProperty>();
                 this.props = props;
             }
             props.put(property.propertyId, property);
@@ -336,7 +337,7 @@ public final class MqttProperties {
     }
 
     public Collection<? extends MqttProperty> listAll() {
-        IntObjectHashMap<MqttProperty> props = this.props;
+        Map<Integer, MqttProperty> props = this.props;
         if (props == null && subscriptionIds == null && userProperties == null) {
             return Collections.<MqttProperty>emptyList();
         }
@@ -360,7 +361,7 @@ public final class MqttProperties {
     }
 
     public boolean isEmpty() {
-        IntObjectHashMap<MqttProperty> props = this.props;
+        Map<Integer, MqttProperty> props = this.props;
         return props == null || props.isEmpty();
     }
 
@@ -387,7 +388,7 @@ public final class MqttProperties {
             }
             return subscriptionIds.get(0);
         }
-        IntObjectHashMap<MqttProperty> props = this.props;
+        Map<Integer, MqttProperty> props = this.props;
         return props == null ? null : props.get(propertyId);
     }
 
@@ -406,7 +407,7 @@ public final class MqttProperties {
         if (propertyId == MqttPropertyType.SUBSCRIPTION_IDENTIFIER.value) {
             return subscriptionIds == null ? Collections.<MqttProperty>emptyList() : subscriptionIds;
         }
-        IntObjectHashMap<MqttProperty> props = this.props;
+        Map<Integer, MqttProperty> props = this.props;
         return (props == null || !props.containsKey(propertyId)) ?
                 Collections.<MqttProperty>emptyList() :
                 Collections.singletonList(props.get(propertyId));

@@ -17,8 +17,6 @@
 package io.netty.resolver.dns;
 
 import io.netty.util.NetUtil;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.PlatformDependent;
 
 import java.net.Inet4Address;
@@ -35,11 +33,11 @@ final class DnsQueryContextManager {
      * A map whose key is the DNS server address and value is the map of the DNS query ID and its corresponding
      * {@link DnsQueryContext}.
      */
-    final Map<InetSocketAddress, IntObjectMap<DnsQueryContext>> map =
-            new HashMap<InetSocketAddress, IntObjectMap<DnsQueryContext>>();
+    final Map<InetSocketAddress, Map<Integer, DnsQueryContext>> map =
+            new HashMap<InetSocketAddress, Map<Integer, DnsQueryContext>>();
 
     int add(DnsQueryContext qCtx) {
-        final IntObjectMap<DnsQueryContext> contexts = getOrCreateContextMap(qCtx.nameServerAddr());
+        final Map<Integer, DnsQueryContext> contexts = getOrCreateContextMap(qCtx.nameServerAddr());
 
         int id = PlatformDependent.threadLocalRandom().nextInt(65536 - 1) + 1;
         final int maxTries = 65535 << 1;
@@ -62,7 +60,7 @@ final class DnsQueryContextManager {
     }
 
     DnsQueryContext get(InetSocketAddress nameServerAddr, int id) {
-        final IntObjectMap<DnsQueryContext> contexts = getContextMap(nameServerAddr);
+        final Map<Integer, DnsQueryContext> contexts = getContextMap(nameServerAddr);
         final DnsQueryContext qCtx;
         if (contexts != null) {
             synchronized (contexts) {
@@ -76,7 +74,7 @@ final class DnsQueryContextManager {
     }
 
     DnsQueryContext remove(InetSocketAddress nameServerAddr, int id) {
-        final IntObjectMap<DnsQueryContext> contexts = getContextMap(nameServerAddr);
+        final Map<Integer, DnsQueryContext> contexts = getContextMap(nameServerAddr);
         if (contexts == null) {
             return null;
         }
@@ -86,20 +84,20 @@ final class DnsQueryContextManager {
         }
     }
 
-    private IntObjectMap<DnsQueryContext> getContextMap(InetSocketAddress nameServerAddr) {
+    private Map<Integer, DnsQueryContext> getContextMap(InetSocketAddress nameServerAddr) {
         synchronized (map) {
             return map.get(nameServerAddr);
         }
     }
 
-    private IntObjectMap<DnsQueryContext> getOrCreateContextMap(InetSocketAddress nameServerAddr) {
+    private Map<Integer, DnsQueryContext> getOrCreateContextMap(InetSocketAddress nameServerAddr) {
         synchronized (map) {
-            final IntObjectMap<DnsQueryContext> contexts = map.get(nameServerAddr);
+            final Map<Integer, DnsQueryContext> contexts = map.get(nameServerAddr);
             if (contexts != null) {
                 return contexts;
             }
 
-            final IntObjectMap<DnsQueryContext> newContexts = new IntObjectHashMap<DnsQueryContext>();
+            final Map<Integer, DnsQueryContext> newContexts = new HashMap<Integer, DnsQueryContext>();
             final InetAddress a = nameServerAddr.getAddress();
             final int port = nameServerAddr.getPort();
             map.put(nameServerAddr, newContexts);

@@ -30,12 +30,13 @@ import io.netty.handler.codec.http2.StreamBufferingEncoder.Http2ChannelClosedExc
 import io.netty.handler.codec.http2.StreamBufferingEncoder.Http2GoAwayException;
 import io.netty.util.ReferenceCountUtil;
 import io.netty.util.ReferenceCounted;
-import io.netty.util.collection.IntObjectHashMap;
-import io.netty.util.collection.IntObjectMap;
 import io.netty.util.internal.UnstableApi;
 import io.netty.util.internal.logging.InternalLogLevel;
 import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static io.netty.buffer.ByteBufUtil.writeAscii;
 import static io.netty.handler.codec.http2.Http2CodecUtil.HTTP_UPGRADE_STREAM_ID;
@@ -160,8 +161,8 @@ public class Http2FrameCodec extends Http2ConnectionHandler {
      * Number of buffered streams if the {@link StreamBufferingEncoder} is used.
      **/
     private int numBufferedStreams;
-    private final IntObjectMap<DefaultHttp2FrameStream> frameStreamToInitializeMap =
-            new IntObjectHashMap<DefaultHttp2FrameStream>(8);
+    private final Map<Integer, DefaultHttp2FrameStream> frameStreamToInitializeMap =
+            new HashMap<Integer, DefaultHttp2FrameStream>(8);
 
     Http2FrameCodec(Http2ConnectionEncoder encoder, Http2ConnectionDecoder decoder, Http2Settings initialSettings,
                     boolean decoupleCloseAndGoAway) {
