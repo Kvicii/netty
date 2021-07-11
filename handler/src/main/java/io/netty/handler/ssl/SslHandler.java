@@ -394,6 +394,9 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
 
     private final boolean startTls;
 
+    private final SslTasksRunner sslTaskRunnerForUnwrap = new SslTasksRunner(true);
+    private final SslTasksRunner sslTaskRunner = new SslTasksRunner(false);
+
     private SslHandlerCoalescingBufferQueue pendingUnencryptedWrites;
     private Promise<Channel> handshakePromise = new LazyChannelPromise();
     private final LazyChannelPromise sslClosePromise = new LazyChannelPromise();
@@ -1258,9 +1261,12 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
                 ctx.fireUserEventTriggered(new SslHandshakeCompletionEvent(cause));
             }
 
-            // We need to flush one time as there may be an alert that we should send to the remote peer because
-            // of the SSLException reported here.
-            wrapAndFlush(ctx);
+            // Let's check if the handler was removed in the meantime and so pendingUnencryptedWrites is null.
+            if (pendingUnencryptedWrites != null) {
+                // We need to flush one time as there may be an alert that we should send to the remote peer because
+                // of the SSLException reported here.
+                wrapAndFlush(ctx);
+            }
         } catch (SSLException ex) {
             logger.debug("SSLException during trying to call SSLEngine.wrap(...)" +
                     " because of an previous SSLException, ignoring...", ex);
@@ -1387,7 +1393,8 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
                 }
 
                 if (handshakeStatus == HandshakeStatus.NEED_TASK) {
-                    if (!runDelegatedTasks(true)) {
+                    boolean pending = runDelegatedTasks(true);
+                    if (!pending) {
                         // We scheduled a task on the delegatingTaskExecutor, so stop processing as we will
                         // resume once the task completes.
                         //
@@ -1503,16 +1510,6 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
         return executor instanceof EventExecutor && ((EventExecutor) executor).inEventLoop();
     }
 
-    private static void runAllDelegatedTasks(SSLEngine engine) {
-        for (;;) {
-            Runnable task = engine.getDelegatedTask();
-            if (task == null) {
-                return;
-            }
-            task.run();
-        }
-    }
-
     /**
      * Will either run the delegated task directly calling {@link Runnable#run()} and return {@code true} or will
      * offload the delegated task using {@link Executor#execute(Runnable)} and return {@code false}.
@@ -1522,22 +1519,87 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
      */
     private boolean runDelegatedTasks(boolean inUnwrap) {
         if (delegatedTaskExecutor == ImmediateExecutor.INSTANCE || inEventLoop(delegatedTaskExecutor)) {
-            // We should run the task directly in the EventExecutor thread and not offload at all.
-            runAllDelegatedTasks(engine);
-            return true;
+            // We should run the task directly in the EventExecutor thread and not offload at all. As we are on the
+            // EventLoop we can just run all tasks at once.
+            for (;;) {
+                Runnable task = engine.getDelegatedTask();
+                if (task == null) {
+                    return true;
+                }
+                setState(STATE_PROCESS_TASK);
+                if (task instanceof AsyncRunnable) {
+                    // Let's set the task to processing task before we try to execute it.
+                    boolean pending = false;
+                    try {
+                        AsyncRunnable asyncTask = (AsyncRunnable) task;
+                        AsyncTaskCompletionHandler completionHandler = new AsyncTaskCompletionHandler(inUnwrap);
+                        asyncTask.run(completionHandler);
+                        pending = completionHandler.resumeLater();
+                        if (pending) {
+                            return false;
+                        }
+                    } finally {
+                        if (!pending) {
+                            // The task has completed, lets clear the state. If it is not completed we will clear the
+                            // state once it is.
+                            clearState(STATE_PROCESS_TASK);
+                        }
+                    }
+                } else {
+                    try {
+                        task.run();
+                    } finally {
+                        clearState(STATE_PROCESS_TASK);
+                    }
+                }
+            }
         } else {
-            executeDelegatedTasks(inUnwrap);
+            executeDelegatedTask(inUnwrap);
             return false;
         }
     }
 
-    private void executeDelegatedTasks(boolean inUnwrap) {
+    private SslTasksRunner getTaskRunner(boolean inUnwrap) {
+        return inUnwrap ? sslTaskRunnerForUnwrap : sslTaskRunner;
+    }
+
+    private void executeDelegatedTask(boolean inUnwrap) {
+        executeDelegatedTask(getTaskRunner(inUnwrap));
+    }
+
+    private void executeDelegatedTask(SslTasksRunner task) {
         setState(STATE_PROCESS_TASK);
         try {
-            delegatedTaskExecutor.execute(new SslTasksRunner(inUnwrap));
+            delegatedTaskExecutor.execute(task);
         } catch (RejectedExecutionException e) {
             clearState(STATE_PROCESS_TASK);
             throw e;
+        }
+    }
+
+    private final class AsyncTaskCompletionHandler implements Runnable {
+        private final boolean inUnwrap;
+        boolean didRun;
+        boolean resumeLater;
+
+        AsyncTaskCompletionHandler(boolean inUnwrap) {
+            this.inUnwrap = inUnwrap;
+        }
+
+        @Override
+        public void run() {
+            didRun = true;
+            if (resumeLater) {
+                getTaskRunner(inUnwrap).runComplete();
+            }
+        }
+
+        boolean resumeLater() {
+            if (!didRun) {
+                resumeLater = true;
+                return true;
+            }
+            return false;
         }
     }
 
@@ -1547,6 +1609,12 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
      */
     private final class SslTasksRunner implements Runnable {
         private final boolean inUnwrap;
+        private final Runnable runCompleteTask = new Runnable() {
+            @Override
+            public void run() {
+                runComplete();
+            }
+        };
 
         SslTasksRunner(boolean inUnwrap) {
             this.inUnwrap = inUnwrap;
@@ -1612,9 +1680,10 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
             try {
                 HandshakeStatus status = engine.getHandshakeStatus();
                 switch (status) {
-                    // There is another task that needs to be executed and offloaded to the delegatingTaskExecutor.
+                    // There is another task that needs to be executed and offloaded to the delegatingTaskExecutor as
+                    // a result of this. Let's reschedule....
                     case NEED_TASK:
-                        executeDelegatedTasks(inUnwrap);
+                        executeDelegatedTask(this);
 
                         break;
 
@@ -1687,33 +1756,49 @@ public class SslHandler extends ByteToMessageDecoder implements ChannelOutboundH
             }
         }
 
-        @Override
-        public void run() {
-            try {
-                runAllDelegatedTasks(engine);
-
-                // All tasks were processed.
-                assert engine.getHandshakeStatus() != HandshakeStatus.NEED_TASK;
-
+        void runComplete() {
+            EventExecutor executor = ctx.executor();
+            if (executor.inEventLoop()) {
+                resumeOnEventExecutor();
+            } else {
                 // Jump back on the EventExecutor.
-                ctx.executor().execute(new Runnable() {
+                executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         resumeOnEventExecutor();
                     }
                 });
+            }
+        }
+
+        @Override
+        public void run() {
+            try {
+                Runnable task = engine.getDelegatedTask();
+                if (task == null) {
+                    // The task was processed in the meantime. Let's just return.
+                    return;
+                }
+                if (task instanceof AsyncRunnable) {
+                    AsyncRunnable asyncTask = (AsyncRunnable) task;
+                    asyncTask.run(runCompleteTask);
+                } else {
+                    task.run();
+                    runComplete();
+                }
             } catch (final Throwable cause) {
                 handleException(cause);
             }
         }
 
         private void handleException(final Throwable cause) {
-            if (ctx.executor().inEventLoop()) {
+            EventExecutor executor = ctx.executor();
+            if (executor.inEventLoop()) {
                 clearState(STATE_PROCESS_TASK);
                 safeExceptionCaught(cause);
             } else {
                 try {
-                    ctx.executor().execute(new Runnable() {
+                    executor.execute(new Runnable() {
                         @Override
                         public void run() {
                             clearState(STATE_PROCESS_TASK);

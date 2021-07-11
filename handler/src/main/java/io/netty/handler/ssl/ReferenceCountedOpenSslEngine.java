@@ -19,6 +19,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.handler.ssl.util.LazyJavaxX509Certificate;
 import io.netty.handler.ssl.util.LazyX509Certificate;
+import io.netty.internal.tcnative.AsyncTask;
 import io.netty.internal.tcnative.Buffer;
 import io.netty.internal.tcnative.SSL;
 import io.netty.util.AbstractReferenceCounted;
@@ -65,13 +66,6 @@ import javax.net.ssl.SSLSessionBindingListener;
 import javax.security.cert.X509Certificate;
 
 import static io.netty.handler.ssl.OpenSsl.memoryAddress;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_SSL_V2;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_SSL_V2_HELLO;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_SSL_V3;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_TLS_V1;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_TLS_V1_1;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_TLS_V1_2;
-import static io.netty.handler.ssl.SslUtils.PROTOCOL_TLS_V1_3;
 import static io.netty.handler.ssl.SslUtils.SSL_RECORD_HEADER_LENGTH;
 import static io.netty.util.internal.ObjectUtil.checkNotNull;
 import static io.netty.util.internal.ObjectUtil.checkNotNullArrayParam;
@@ -360,7 +354,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
                     SSL.setMode(ssl, SSL.getMode(ssl) | SSL.SSL_MODE_ENABLE_PARTIAL_WRITE);
                 }
 
-                if (isProtocolEnabled(SSL.getOptions(ssl), SSL.SSL_OP_NO_TLSv1_3, PROTOCOL_TLS_V1_3)) {
+                if (isProtocolEnabled(SSL.getOptions(ssl), SSL.SSL_OP_NO_TLSv1_3, SslProtocols.TLS_v1_3)) {
                     final boolean enableTickets = clientMode ?
                             ReferenceCountedOpenSslContext.CLIENT_ENABLE_SESSION_TICKET_TLSV13 :
                             ReferenceCountedOpenSslContext.SERVER_ENABLE_SESSION_TICKET_TLSV13;
@@ -1368,7 +1362,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
         if (!isDestroyed() && SSL.getHandshakeCount(ssl) > 1 &&
             // As we may count multiple handshakes when TLSv1.3 is used we should just ignore this here as
             // renegotiation is not supported in TLSv1.3 as per spec.
-            !SslUtils.PROTOCOL_TLS_V1_3.equals(session.getProtocol()) && handshakeState == HandshakeState.FINISHED) {
+            !SslProtocols.TLS_v1_3.equals(session.getProtocol()) && handshakeState == HandshakeState.FINISHED) {
             // TODO: In future versions me may also want to send a fatal_alert to the client and so notify it
             // that the renegotiation failed.
             shutdown();
@@ -1436,6 +1430,48 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
         }
     }
 
+    private class TaskDecorator<R extends Runnable> implements Runnable {
+        protected final R task;
+        TaskDecorator(R task) {
+            this.task = task;
+        }
+
+        @Override
+        public void run() {
+            if (isDestroyed()) {
+                // The engine was destroyed in the meantime, just return.
+                return;
+            }
+            try {
+                task.run();
+            } finally {
+                // The task was run, reset needTask to false so getHandshakeStatus() returns the correct value.
+                needTask = false;
+            }
+        }
+    }
+
+    private final class AsyncTaskDecorator extends TaskDecorator<AsyncTask> implements AsyncRunnable {
+        AsyncTaskDecorator(AsyncTask task) {
+            super(task);
+        }
+
+        @Override
+        public void run(Runnable runnable) {
+            if (isDestroyed()) {
+                // The engine was destroyed in the meantime, just return.
+                runnable.run();
+                return;
+            }
+            try {
+                task.runAsync(runnable);
+            } finally {
+                // The task was run, reset needTask to false so getHandshakeStatus() returns the correct value.
+                needTask = false;
+            }
+        }
+    }
+
     @Override
     public final synchronized Runnable getDelegatedTask() {
         if (isDestroyed()) {
@@ -1445,21 +1481,10 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
         if (task == null) {
             return null;
         }
-        return new Runnable() {
-            @Override
-            public void run() {
-                if (isDestroyed()) {
-                    // The engine was destroyed in the meantime, just return.
-                    return;
-                }
-                try {
-                    task.run();
-                } finally {
-                    // The task was run, reset needTask to false so getHandshakeStatus() returns the correct value.
-                    needTask = false;
-                }
-            }
-        };
+        if (task instanceof AsyncTask) {
+            return new AsyncTaskDecorator((AsyncTask) task);
+        }
+        return new TaskDecorator<Runnable>(task);
     }
 
     @Override
@@ -1556,7 +1581,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
             if (!isDestroyed()) {
                 enabled = SSL.getCiphers(ssl);
                 int opts = SSL.getOptions(ssl);
-                if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_3, PROTOCOL_TLS_V1_3)) {
+                if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_3, SslProtocols.TLS_v1_3)) {
                     extraCiphers = OpenSsl.EXTRA_SUPPORTED_TLS_1_3_CIPHERS;
                     tls13Enabled = true;
                 } else {
@@ -1618,16 +1643,16 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
                     // We have no ciphers that are compatible with none-TLSv1.3, let us explicit disable all other
                     // protocols.
                     if (cipherSuiteSpec.isEmpty()) {
-                        protocols.remove(PROTOCOL_TLS_V1);
-                        protocols.remove(PROTOCOL_TLS_V1_1);
-                        protocols.remove(PROTOCOL_TLS_V1_2);
-                        protocols.remove(PROTOCOL_SSL_V3);
-                        protocols.remove(PROTOCOL_SSL_V2);
-                        protocols.remove(PROTOCOL_SSL_V2_HELLO);
+                        protocols.remove(SslProtocols.TLS_v1);
+                        protocols.remove(SslProtocols.TLS_v1_1);
+                        protocols.remove(SslProtocols.TLS_v1_2);
+                        protocols.remove(SslProtocols.SSL_v3);
+                        protocols.remove(SslProtocols.SSL_v2);
+                        protocols.remove(SslProtocols.SSL_v2_HELLO);
                     }
                     // We have no ciphers that are compatible with TLSv1.3, let us explicit disable it.
                     if (cipherSuiteSpecTLSv13.isEmpty()) {
-                        protocols.remove(PROTOCOL_TLS_V1_3);
+                        protocols.remove(SslProtocols.TLS_v1_3);
                     }
                     // Update the protocols but not cache the value. We only cache when we call it from the user
                     // code or when we construct the engine.
@@ -1650,7 +1675,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
     public final String[] getEnabledProtocols() {
         List<String> enabled = new ArrayList<String>(6);
         // Seems like there is no way to explicit disable SSLv2Hello in openssl so it is always enabled
-        enabled.add(PROTOCOL_SSL_V2_HELLO);
+        enabled.add(SslProtocols.SSL_v2_HELLO);
 
         int opts;
         synchronized (this) {
@@ -1660,23 +1685,23 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
                 return enabled.toArray(new String[0]);
             }
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1, PROTOCOL_TLS_V1)) {
-            enabled.add(PROTOCOL_TLS_V1);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1, SslProtocols.TLS_v1)) {
+            enabled.add(SslProtocols.TLS_v1);
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_1, PROTOCOL_TLS_V1_1)) {
-            enabled.add(PROTOCOL_TLS_V1_1);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_1, SslProtocols.TLS_v1_1)) {
+            enabled.add(SslProtocols.TLS_v1_1);
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_2, PROTOCOL_TLS_V1_2)) {
-            enabled.add(PROTOCOL_TLS_V1_2);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_2, SslProtocols.TLS_v1_2)) {
+            enabled.add(SslProtocols.TLS_v1_2);
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_3, PROTOCOL_TLS_V1_3)) {
-            enabled.add(PROTOCOL_TLS_V1_3);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_TLSv1_3, SslProtocols.TLS_v1_3)) {
+            enabled.add(SslProtocols.TLS_v1_3);
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_SSLv2, PROTOCOL_SSL_V2)) {
-            enabled.add(PROTOCOL_SSL_V2);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_SSLv2, SslProtocols.SSL_v2)) {
+            enabled.add(SslProtocols.SSL_v2);
         }
-        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_SSLv3, PROTOCOL_SSL_V3)) {
-            enabled.add(PROTOCOL_SSL_V3);
+        if (isProtocolEnabled(opts, SSL.SSL_OP_NO_SSLv3, SslProtocols.SSL_v3)) {
+            enabled.add(SslProtocols.SSL_v3);
         }
         return enabled.toArray(new String[0]);
     }
@@ -1710,42 +1735,42 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
             if (!OpenSsl.SUPPORTED_PROTOCOLS_SET.contains(p)) {
                 throw new IllegalArgumentException("Protocol " + p + " is not supported.");
             }
-            if (p.equals(PROTOCOL_SSL_V2)) {
+            if (p.equals(SslProtocols.SSL_v2)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV2) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV2;
                 }
                 if (maxProtocolIndex < OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV2) { // lgtm[java/constant-comparison]
                     maxProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV2;
                 }
-            } else if (p.equals(PROTOCOL_SSL_V3)) {
+            } else if (p.equals(SslProtocols.SSL_v3)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV3) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV3;
                 }
                 if (maxProtocolIndex < OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV3) {
                     maxProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_SSLV3;
                 }
-            } else if (p.equals(PROTOCOL_TLS_V1)) {
+            } else if (p.equals(SslProtocols.TLS_v1)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1;
                 }
                 if (maxProtocolIndex < OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1) {
                     maxProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1;
                 }
-            } else if (p.equals(PROTOCOL_TLS_V1_1)) {
+            } else if (p.equals(SslProtocols.TLS_v1_1)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_1) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_1;
                 }
                 if (maxProtocolIndex < OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_1) {
                     maxProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_1;
                 }
-            } else if (p.equals(PROTOCOL_TLS_V1_2)) {
+            } else if (p.equals(SslProtocols.TLS_v1_2)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_2) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_2;
                 }
                 if (maxProtocolIndex < OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_2) {
                     maxProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_2;
                 }
-            } else if (p.equals(PROTOCOL_TLS_V1_3)) {
+            } else if (p.equals(SslProtocols.TLS_v1_3)) {
                 if (minProtocolIndex > OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_3) {
                     minProtocolIndex = OPENSSL_OP_NO_PROTOCOL_INDEX_TLSv1_3;
                 }
@@ -2368,7 +2393,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
             }
 
             if (value instanceof SSLSessionBindingListener) {
-                // Use newSSLSessionBindingEvent so we alway use the wrapper if needed.
+                // Use newSSLSessionBindingEvent so we always use the wrapper if needed.
                 ((SSLSessionBindingListener) value).valueBound(newSSLSessionBindingEvent(name));
             }
             notifyUnbound(old, name);
@@ -2414,7 +2439,7 @@ public class ReferenceCountedOpenSslEngine extends SSLEngine implements Referenc
 
         private void notifyUnbound(Object value, String name) {
             if (value instanceof SSLSessionBindingListener) {
-                // Use newSSLSessionBindingEvent so we alway use the wrapper if needed.
+                // Use newSSLSessionBindingEvent so we always use the wrapper if needed.
                 ((SSLSessionBindingListener) value).valueUnbound(newSSLSessionBindingEvent(name));
             }
         }
