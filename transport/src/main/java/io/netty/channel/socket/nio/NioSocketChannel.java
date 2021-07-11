@@ -39,7 +39,6 @@ import io.netty.util.internal.logging.InternalLogger;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 
 import java.io.IOException;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketAddress;
@@ -318,8 +317,8 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 
 		boolean success = false;
 		try {
-			boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);
-			if (!connected) {
+			boolean connected = SocketUtils.connect(javaChannel(), remoteAddress);	// 使用底层NIO进行connect
+			if (!connected) {	// 客户端连接建立 所以关注OP_CONNECT事件
 				selectionKey().interestOps(SelectionKey.OP_CONNECT);
 			}
 			success = true;
@@ -353,6 +352,10 @@ public class NioSocketChannel extends AbstractNioByteChannel implements io.netty
 	protected int doReadBytes(ByteBuf byteBuf) throws Exception {
 		final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
 		allocHandle.attemptedBytesRead(byteBuf.writableBytes());
+		/**
+		 * 尝试从Channel读取数据写入到ByteBuf
+		 * 调用{@link PooledByteBuf#setBytes(int, java.nio.channels.ScatteringByteChannel, int)}
+		 */
 		return byteBuf.writeBytes(javaChannel(), allocHandle.attemptedBytesRead());
 	}
 

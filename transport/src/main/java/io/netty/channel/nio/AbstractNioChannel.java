@@ -234,7 +234,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 				}
 
 				boolean wasActive = isActive();
-				if (doConnect(remoteAddress, localAddress)) {
+				if (doConnect(remoteAddress, localAddress)) {	// 客户端连接建立
 					fulfillConnectPromise(promise, wasActive);
 				} else {
 					connectPromise = promise;
@@ -284,7 +284,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 
 			// Regardless if the connection attempt was cancelled, channelActive() event should be triggered,
 			// because what happened is what happened.
-			if (!wasActive && active) {
+			if (!wasActive && active) {	// 触发channelActive
 				pipeline().fireChannelActive();
 			}
 
@@ -315,7 +315,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
 			try {
 				boolean wasActive = isActive();
 				doFinishConnect();
-				fulfillConnectPromise(connectPromise, wasActive);
+				fulfillConnectPromise(connectPromise, wasActive);	// 触发channelActive
 			} catch (Throwable t) {
 				fulfillConnectPromise(connectPromise, annotateConnectException(t, requestedRemoteAddress));
 			} finally {

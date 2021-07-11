@@ -41,6 +41,7 @@ import java.util.Map;
 
 /**
  * A {@link io.netty.channel.socket.ServerSocketChannel} implementation which uses
+ * <p>
  * NIO selector based implementation to accept new connections.
  * 连接监听类型的socket描述符 负责接收客户端套接字连接 在服务端一个连接监听类型的socket描述符可以接受(Accept)成千上万个传输类的socket描述符
  */
@@ -156,7 +157,7 @@ public class NioServerSocketChannel extends AbstractNioMessageChannel
 
 	@Override
 	protected int doReadMessages(List<Object> buf) throws Exception {
-		// 接受新连接创建SocketChannel
+		// 和客户端建立新连接 创建SocketChannel
 		SocketChannel ch = SocketUtils.accept(javaChannel());
 		try {
 			if (ch != null) {   // 将JDK创建的原生SocketChannel封装为netty的NioSocketChannel 添加到集合并返回

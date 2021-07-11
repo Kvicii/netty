@@ -52,6 +52,8 @@ import java.util.concurrent.atomic.AtomicLong;
 /**
  * {@link SingleThreadEventLoop} implementation which register the {@link Channel}'s to a
  * {@link Selector} and so does the multi-plexing of these in the event loop.
+ * <p>
+ * 负责轮询NIO事件的线程 轮询多个Client连接的SocketChannel中的事件
  */
 public final class NioEventLoop extends SingleThreadEventLoop {
 
@@ -68,7 +70,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 	private final IntSupplier selectNowSupplier = () -> selectNow();
 
 	// Workaround for JDK NIO bug.
-	//
+	// JDK空轮询bug
 	// See:
 	// - https://bugs.java.com/view_bug.do?bug_id=6427854
 	// - https://github.com/netty/netty/issues/203
@@ -437,6 +439,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 	 * 一个NioEventLoop对应着一个select
 	 * <p>
 	 * 监听/处理事件
+	 * <p>
+	 * JDK1.5以前基于select/poll方式的调用存在明显的问题:
+	 * 		线程会遍历所有网络连接 如果某个连接没有就绪的事件 就会对该连接添加一个wait_queue节点 Selector线程阻塞等待
+	 * 		直到连接上有事件发生 就遍历该连接的wait_queue 然后回调函数 唤醒Selector阻塞等待的线程 再次遍历所有网络连接 返回就绪事件
+	 * <p>
+	 * 		假如Selector注册了100个客户端Channel 如果只有一个客户端A有网络事件 这时候Selector必须重新遍历一遍100个客户端 收集出来一个客户端A的网络事件交给线程处理
+	 * <p>
+	 * JDK1.5以后基于epoll:
+	 * 		如果某个连接有就绪事件 就回调epoll的回调函数 将就绪的事件放入epoll的双向链表 epoll就知道在双向链表中的事件都是可处理的 不需要重新遍历所有客户端
 	 */
 	@Override
 	protected void run() {
@@ -493,6 +504,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 							processSelectedKeys();  // 2.处理IO相关的逻辑(包括新连接的接入)
 						}
 					} finally {
+						// 3.
 						/**
 						 * Ensure we always run tasks.
 						 *
@@ -729,7 +741,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 				ops &= ~SelectionKey.OP_CONNECT;
 				k.interestOps(ops);
 
-				unsafe.finishConnect();
+				unsafe.finishConnect();	// 完成实际的客户端连接建立 触发channelActive
 			}
 
 			// Process OP_WRITE first as we may be able to write some queued buffers and so free memory.

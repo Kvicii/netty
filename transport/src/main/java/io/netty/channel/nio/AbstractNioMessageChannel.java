@@ -71,14 +71,18 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
      */
     private final class NioMessageUnsafe extends AbstractNioUnsafe {
 
-        private final List<Object> readBuf = new ArrayList<Object>();   // 服务端channel对应的MessageUnsafe对应的一个字段
+        private final List<Object> readBuf = new ArrayList<>();   // 服务端channel对应的MessageUnsafe对应的一个字段
 
         @Override
         public void read() {
-            assert eventLoop().inEventLoop();   // 必须是有NioEventLoop线程调用的 如果是外部线程调用的就不继续执行了
+            assert eventLoop().inEventLoop();   // 必须是由NioEventLoop线程调用的 如果是外部线程调用的就不继续执行了
             final ChannelConfig config = config();   // 服务端Config 即ServerSocketChannelConfig
             final ChannelPipeline pipeline = pipeline();    // 服务端pipeline
-            final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();  // 处理服务端接入的速率
+            // RecvByteBufAllocator: 分配ByteBuf缓冲区的组件
+            // 动态的根据上一次请求获取到的数据大小 预估这次请求的数据大小大致有多少(处理服务端接入的速率) 根据预估的结果创建符合预期的缓冲区
+            // Kafka在请求头中包含了本次请求的数据大小 所以不需要进行预估 直接根据请求头中的值分配ByteBuf
+            // 而netty并不能在请求头中指定 由于每次请求并不知道数据的大小 只能根据每次请求的大小动态预估下一次请求的大小 根据动态预估的大小创建ByteBuf
+            final RecvByteBufAllocator.Handle allocHandle = unsafe().recvBufAllocHandle();
             allocHandle.reset(config);
 
             boolean closed = false;
@@ -86,7 +90,7 @@ public abstract class AbstractNioMessageChannel extends AbstractNioChannel {
             try {
                 try {
                     do {
-                        // 默认情况下一次性读取16个连接
+                        // 读取1个新连接
                         int localRead = doReadMessages(readBuf);    // 新连接接入 服务端的读是读取新的连接
                         if (localRead == 0) {
                             break;

@@ -79,6 +79,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
     public static final ChannelOption<RecvByteBufAllocator> RCVBUF_ALLOCATOR = valueOf("RCVBUF_ALLOCATOR");
     public static final ChannelOption<MessageSizeEstimator> MESSAGE_SIZE_ESTIMATOR = valueOf("MESSAGE_SIZE_ESTIMATOR");
 
+    // 连接超时时间
     public static final ChannelOption<Integer> CONNECT_TIMEOUT_MILLIS = valueOf("CONNECT_TIMEOUT_MILLIS");
     /**
      * @deprecated Use {@link MaxMessagesRecvByteBufAllocator}
@@ -122,7 +123,7 @@ public class ChannelOption<T> extends AbstractConstant<ChannelOption<T>> {
      */
     // socket发送缓冲区大小
     public static final ChannelOption<Integer> SO_SNDBUF = valueOf("SO_SNDBUF");
-    // socket接收缓冲区大小
+    // socket接收缓冲区大小 缓冲区过小性能就会比较差 一般是128kb或者256kb
     public static final ChannelOption<Integer> SO_RCVBUF = valueOf("SO_RCVBUF");
     // TCP参数 设置为true表示地址复用 有4种情况需要用到该参数
     // 1.当有一个相同本地地址和端口的socket1处于TIME_WAIT状态时 而希望的启动的socket2要占用该地址和端口 如在重启服务且保持先前端口时

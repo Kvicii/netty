@@ -248,6 +248,13 @@ import java.nio.charset.UnsupportedCharsetException;
  *
  * <h4>I/O Streams</h4>
  * <p>
+ * Netty的ByteBuf和JDK原生的ByteBuffer比较:
+ * <p>
+ *     1.原生Bytebuffer是固定长度的 无法动态调整大小 会导致内存浪费
+ *     2.原生Bytebuffer的API不友好
+ *     3.需要先从Bytebuffer拷贝到JVM的内存区域中 再从JVM的内存区域拷贝到Socket缓冲区(2次拷贝 对于读写性能有一定的影响)
+ *       DirectByteBuffer相当于直接划了一块内存区域 把数据放到里面去 不需要经过拷贝 直接把数据拷贝到Socket缓冲区 减少一次拷贝
+ * </p>
  * Please refer to {@link ByteBufInputStream} and
  * {@link ByteBufOutputStream}.
  */

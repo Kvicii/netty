@@ -52,8 +52,9 @@ public final class EchoServer {
 
 		// Configure the server.
 		// 在服务器端会指定两个EventLoopGroup 一个用于新连接的监听和接收 另外一个用于处理IO事件
-		EventLoopGroup bossGroup = new NioEventLoopGroup(); // 创建NioEventLoopGroup时创建了Selector  查询父通道(NioServerSocketChannel)的IO事件
-		EventLoopGroup workerGroup = new NioEventLoopGroup();   // 查询所有子通道(NioSocketChannel)的IO事件
+		// 64C128G的高配物理机 Acceptor线程可以开启100个左右 IO线程可以开启1000个甚至更多
+		EventLoopGroup bossGroup = new NioEventLoopGroup(128); // 创建NioEventLoopGroup时创建了Selector  查询父通道(NioServerSocketChannel)的IO事件
+		EventLoopGroup workerGroup = new NioEventLoopGroup(1024);   // 查询所有子通道(NioSocketChannel)的IO事件
 		final EchoServerHandler serverHandler = new EchoServerHandler();
 		try {
 			ServerBootstrap b = new ServerBootstrap();

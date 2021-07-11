@@ -36,6 +36,7 @@ public interface EventExecutor extends EventExecutorGroup {
 
 	/**
 	 * Calls {@link #inEventLoop(Thread)} with {@link Thread#currentThread()} as argument
+	 * <p>
 	 * 判断当前线程是否是{@link io.netty.channel.nio.NioEventLoop }的线程
 	 */
 	boolean inEventLoop();

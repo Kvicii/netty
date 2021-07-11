@@ -146,7 +146,11 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 			}
 			final ChannelPipeline pipeline = pipeline();
 			final ByteBufAllocator allocator = config.getAllocator();   // ByteBuf分配器
-			final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();   // AdaptiveRecvByteBufAllocator决定下一次分配数据的空间大小
+			// RecvByteBufAllocator: 分配ByteBuf缓冲区的组件
+			// 动态的根据上一次请求获取到的数据大小 预估这次请求的数据大小大致有多少(处理服务端接入的速率) 根据预估的结果创建符合预期的缓冲区
+			// Kafka在请求头中包含了本次请求的数据大小 所以不需要进行预估 直接根据请求头中的值分配ByteBuf
+			// 而netty并不能在请求头中指定 由于每次请求并不知道数据的大小 只能根据每次请求的大小动态预估下一次请求的大小 根据动态预估的大小创建ByteBuf
+			final RecvByteBufAllocator.Handle allocHandle = recvBufAllocHandle();
 			allocHandle.reset(config);
 
 			ByteBuf byteBuf = null;
@@ -154,6 +158,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 			try {
 				do {
 					byteBuf = allocHandle.allocate(allocator);  // 猜测分配ByteBuf的大小
+					// doReadBytes返回读取到的字节数
 					allocHandle.lastBytesRead(doReadBytes(byteBuf));    // 客户端的读是读取IO数据/正常关闭
 					if (allocHandle.lastBytesRead() <= 0) { // 读取到的字节数 <= 0
 						// nothing was read. release the buffer.
@@ -174,7 +179,7 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
 				} while (allocHandle.continueReading());
 
 				allocHandle.readComplete(); // 记录本次OP_READ事件一共读取了多少数据 计算下一次要分配的大小
-				pipeline.fireChannelReadComplete(); // 相当于完成本次OP_READ事件的处理--此时说明这个OP_READ事件已经完成
+				pipeline.fireChannelReadComplete(); // 相当于完成本次OP_READ事件的处理--此时说明这个OP_READ事件已经完成(服务端将响应结果发回)
 
 				if (close) {
 					closeOnRead(pipeline);  // 执行关闭

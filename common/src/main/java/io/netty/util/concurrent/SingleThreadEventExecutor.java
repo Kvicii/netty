@@ -482,7 +482,7 @@ public abstract class SingleThreadEventExecutor extends AbstractScheduledEventEx
         for (;;) {  // 循环执行每个任务
             safeExecute(task);  // 串行执行任务队列的任务 必须保证每个任务的耗时不会太久 否则需要放到线程池中去执行
 
-            runTasks ++;    // 标记已经执行完的任务
+            runTasks++;    // 标记已经执行完的任务
 
             /**
              * Check timeout every 64 tasks because nanoTime() is relatively expensive.

@@ -80,12 +80,14 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
              */
             executor = new ThreadPerTaskExecutor(newDefaultThreadFactory());
         }
-
+        // 每个线程对应一个EventExecutor
         children = new EventExecutor[nThreads];
 
         for (int i = 0; i < nThreads; i ++) {   // 2.循环创建NioEventLoop
             boolean success = false;
             try {
+                // 创建NioEventLoop线程 每个NioEventLoop线程负责一部分Client连接的SocketChannel
+                // 将这些SocketChannel注册到本线程的Selector中 每个NioEventLoop线程通过内部的Selector轮询这一批Client连接的事件
                 children[i] = newChild(executor, args); // NioEventLoop构造方法内部令Selector与NioEventLoop做唯一的绑定
                 success = true;
             } catch (Exception e) {
@@ -113,14 +115,12 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             }
         }
 
+        // 根据线程个数选择不同的选择器
         chooser = chooserFactory.newChooser(children);  // 3.创建线程选择器 目的是给新连接绑定NioEventLoop
 
-        final FutureListener<Object> terminationListener = new FutureListener<Object>() {
-            @Override
-            public void operationComplete(Future<Object> future) throws Exception {
-                if (terminatedChildren.incrementAndGet() == children.length) {
-                    terminationFuture.setSuccess(null);
-                }
+        final FutureListener<Object> terminationListener = future -> {
+            if (terminatedChildren.incrementAndGet() == children.length) {
+                terminationFuture.setSuccess(null);
             }
         };
 
@@ -128,7 +128,7 @@ public abstract class MultithreadEventExecutorGroup extends AbstractEventExecuto
             e.terminationFuture().addListener(terminationListener);
         }
 
-        Set<EventExecutor> childrenSet = new LinkedHashSet<EventExecutor>(children.length);
+        Set<EventExecutor> childrenSet = new LinkedHashSet<>(children.length);
         Collections.addAll(childrenSet, children);
         readonlyChildren = Collections.unmodifiableSet(childrenSet);
     }

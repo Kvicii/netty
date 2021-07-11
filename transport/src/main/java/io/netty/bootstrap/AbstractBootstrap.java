@@ -64,8 +64,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     // The order in which ChannelOptions are applied is important they may depend on each other for validation
     // purposes.
-    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<ChannelOption<?>, Object>();
-    private final Map<AttributeKey<?>, Object> attrs = new ConcurrentHashMap<AttributeKey<?>, Object>();
+    private final Map<ChannelOption<?>, Object> options = new LinkedHashMap<>();
+    private final Map<AttributeKey<?>, Object> attrs = new ConcurrentHashMap<>();
     private volatile ChannelHandler handler;
 
     AbstractBootstrap() {
@@ -288,21 +288,18 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         } else {    // 没有注册完成 将doBind0操作封装为一个task丢到Listener 待regFuture完成后进行通知Listener执行task
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
-            regFuture.addListener(new ChannelFutureListener() {
-                @Override
-                public void operationComplete(ChannelFuture future) throws Exception {
-                    Throwable cause = future.cause();
-                    if (cause != null) {
-                        // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
-                        // IllegalStateException once we try to access the EventLoop of the Channel.
-                        promise.setFailure(cause);
-                    } else {
-                        // Registration was successful, so set the correct executor to use.
-                        // See https://github.com/netty/netty/issues/2586
-                        promise.registered();
+            regFuture.addListener((ChannelFutureListener) future -> {
+                Throwable cause = future.cause();
+                if (cause != null) {
+                    // Registration on the EventLoop failed so fail the ChannelPromise directly to not cause an
+                    // IllegalStateException once we try to access the EventLoop of the Channel.
+                    promise.setFailure(cause);
+                } else {
+                    // Registration was successful, so set the correct executor to use.
+                    // See https://github.com/netty/netty/issues/2586
+                    promise.registered();
 
-                        doBind0(regFuture, channel, localAddress, promise);
-                    }
+                    doBind0(regFuture, channel, localAddress, promise);
                 }
             });
             return promise;
@@ -313,7 +310,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         Channel channel = null;
         try {
             channel = channelFactory.newChannel();  // 1.channelFactory是在NioEventLoopGroup创建的时候创建的 2.创建一个ServerSocketChannel
-            init(channel);  // 初始化ServerSocketChannel
+            init(channel);  // 初始化ServerSocketChannel(网络参数和属性 包括ServerBootstrapAcceptor)
         } catch (Throwable t) {
             if (channel != null) {
                 // channel can be null if newChannel crashed (eg SocketException("too many open files"))
@@ -327,6 +324,8 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
         /**
          * 服务端是将ServerSocketChannel绑定到bossGroup 然后ServerSocketChannel负责创建子SocketChannel 再将子SocketChannel绑定到workerGroup
+         * 之前创建了一个EventLoopGroup 并注册了一些EventLoop线程 用于轮询IO事件
+         * 这里就是选择一个EventLoop线程 将Channel注册到Selector上 并轮询IO事件
          *
          * 将NioServerSocketChannel注册到Selector
          * 最终调用的是{@link io.netty.channel.AbstractChannel.AbstractUnsafe#register}
@@ -368,14 +367,11 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
          * execute调用的是:
          * {@link SingleThreadEventExecutor#execute(java.lang.Runnable)}
          */
-        channel.eventLoop().execute(new Runnable() {
-            @Override
-            public void run() {
-                if (regFuture.isSuccess()) {
-                    channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
-                } else {
-                    promise.setFailure(regFuture.cause());
-                }
+        channel.eventLoop().execute(() -> {
+            if (regFuture.isSuccess()) {
+                channel.bind(localAddress, promise).addListener(ChannelFutureListener.CLOSE_ON_FAILURE);
+            } else {
+                promise.setFailure(regFuture.cause());
             }
         });
     }
@@ -410,7 +406,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
 
     static Map.Entry<ChannelOption<?>, Object>[] newOptionsArray(Map<ChannelOption<?>, Object> options) {
         synchronized (options) {
-            return new LinkedHashMap<ChannelOption<?>, Object>(options).entrySet().toArray(EMPTY_OPTION_ARRAY);
+            return new LinkedHashMap<>(options).entrySet().toArray(EMPTY_OPTION_ARRAY);
         }
     }
 
@@ -457,7 +453,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (map.isEmpty()) {
             return Collections.emptyMap();
         }
-        return Collections.unmodifiableMap(new HashMap<K, V>(map));
+        return Collections.unmodifiableMap(new HashMap<>(map));
     }
 
     static void setAttributes(Channel channel, Map.Entry<AttributeKey<?>, Object>[] attrs) {

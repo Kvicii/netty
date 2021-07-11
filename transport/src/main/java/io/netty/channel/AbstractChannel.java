@@ -520,12 +520,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
             } else {
                 try {
                     // 把register封装为一个task丢到eventLoop执行
-                    eventLoop.execute(new Runnable() {
-                        @Override
-                        public void run() {
-                            register0(promise);
-                        }
-                    });
+                    eventLoop.execute(() -> register0(promise));
                 } catch (Throwable t) {
                     logger.warn(
                             "Force-closing a channel whose registration task was not accepted by an event loop: {}",
@@ -545,7 +540,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                     return;
                 }
                 boolean firstRegistration = neverRegistered;
-                // 1.
+                // 1. 将客户端/服务端Channel注册到Selector
                 doRegister();
                 neverRegistered = false;
                 registered = true;
@@ -625,12 +620,7 @@ public abstract class AbstractChannel extends DefaultAttributeMap implements Cha
                  * 2.触发channelActive事件 从pipeline的HeadContext开始进行传播
                  * 实际调用{@link ChannelInboundHandlerAdapter#channelActive(ChannelHandlerContext)} 方法
                  */
-                invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        pipeline.fireChannelActive();
-                    }
-                });
+                invokeLater(() -> pipeline.fireChannelActive());
             }
 
             safeSetSuccess(promise);

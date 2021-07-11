@@ -48,8 +48,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
     // The order in which child ChannelOptions are applied is important they may depend on each other for validation
     // purposes.
-    private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<ChannelOption<?>, Object>();
-    private final Map<AttributeKey<?>, Object> childAttrs = new ConcurrentHashMap<AttributeKey<?>, Object>();
+    private final Map<ChannelOption<?>, Object> childOptions = new LinkedHashMap<>();
+    private final Map<AttributeKey<?>, Object> childAttrs = new ConcurrentHashMap<>();
     private final ServerBootstrapConfig config = new ServerBootstrapConfig(this);
     private volatile EventLoopGroup childGroup;
     private volatile ChannelHandler childHandler;
@@ -160,13 +160,8 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
                     pipeline.addLast(handler);   // 将用户代码中自定义的handler配置到pipeline
                 }
                 // 默认添加的ServerBootstrapAcceptor处理器 该处理器每次accept新的连接后都会使用这些属性对新的连接做相应的配置
-                ch.eventLoop().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        pipeline.addLast(new ServerBootstrapAcceptor(
-                                ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs));
-                    }
-                });
+                ch.eventLoop().execute(() -> pipeline.addLast(new ServerBootstrapAcceptor(
+                        ch, currentChildGroup, currentChildHandler, currentChildOptions, currentChildAttrs)));
             }
         });
     }
@@ -214,17 +209,13 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
             // not be able to load the class because of the file limit it already reached.
             //
             // See https://github.com/netty/netty/issues/1328
-            enableAutoReadTask = new Runnable() {
-                @Override
-                public void run() {
-                    channel.config().setAutoRead(true);
-                }
-            };
+            enableAutoReadTask = () -> channel.config().setAutoRead(true);
         }
 
         @Override
         @SuppressWarnings("unchecked")
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            // 服务端Channel通过轮询获取到SocketChannel
             final Channel child = (Channel) msg;
 
             /**
@@ -240,17 +231,14 @@ public class ServerBootstrap extends AbstractBootstrap<ServerBootstrap, ServerCh
 
             try {
                 /**
-                 * 选择NioEventLoop并注册Selector
+                 * 选择NioEventLoop线程 将客户端Channel注册到Selector
                  *
                  * 该childGroup就是EchoServer中定义的workGroup
                  * register时会选择一个NioEventLoop进行注册
                  */
-                childGroup.register(child).addListener(new ChannelFutureListener() {
-                    @Override
-                    public void operationComplete(ChannelFuture future) throws Exception {
-                        if (!future.isSuccess()) {
-                            forceClose(child, future.cause());
-                        }
+                childGroup.register(child).addListener((ChannelFutureListener) future -> {
+                    if (!future.isSuccess()) {
+                        forceClose(child, future.cause());
                     }
                 });
             } catch (Throwable t) {
